@@ -16,10 +16,11 @@ from optparse import OptionParser
 import msprime_demo_models
 
 usage = str("usage: python <script> -p nonAfr -o Tenn -s 1 -i 2 -n 0.02 -d 0.0 -t 350 -c F4Dstat -l 1e6 -e 1006 -a 1008\n"+
-            "WARNING: options 'haplo' and 'vcf' now write to stdout")
+            "WARNING: options 'haplo' and 'vcf' now write to stdout\n"+
+            "WARNING: one-pulse option is deprecated; use -i 2 -n X -d 0.0 for comparable results")
 parser = OptionParser(usage=usage)
 parser.add_option("-p", "--population", action = "store", type = "string", dest = "pop", default="nonAfr", help="call introg_haplotypes in EUR, EAS, or all nonAfr; default=nonAfr")
-parser.add_option("-o", "--outdir", action = "store", type = "string", dest = "outdir", default="Tenn", help="output directory name, best to include model name; default=Tenn")
+parser.add_option("-o", "--outdir", action = "store", type = "string", dest = "outdir", default="Tenn", help="output directory name, must use model name; default=Tenn")
 parser.add_option("-s", "--seed", action = "store", type = "int", dest = "seed", default=1, help="Set random seed for replicate chromosomes; default=1")
 parser.add_option("-i", "--introgress_pulses", action = "store", type = "int", dest = "pulses", default=2, help="Set number of introgression pulses; default=2")
 parser.add_option("-n", "--neand1_admixture_proportion", action = "store", type = "float", dest = "n1_admix_prop", default=0.02, help="Set N1 admixture proportion; default=0.02")
@@ -31,17 +32,17 @@ parser.add_option("-e", "--european_sample_size", action="store", type="int", de
 parser.add_option("-a", "--asian_sample_size", action="store", type="int", dest="AS_sample_size", default=1008, help="Set AS haploid sample size ; default=1008")
 parser.add_option("-r", "--reference_sample_size", action="store", type="int", dest="AF_sample_size", default=2, help="Set AF haploid sample size ; default=2")
 
-parser.add_option("--migration_AF_B", action="store", type="float", dest="m_AF_B", default=15e-5, help="Set African -> ancestral Eurasian migration rate ; default=15e-5")
-parser.add_option("--migration_B_AF", action="store", type="float", dest="m_B_AF", default=15e-5, help="Set African <- ancestral Eurasian migration rate ; default=15e-5")
+parser.add_option("--migration_AF_B", action="store", type="float", dest="m_AF_B", default=15e-5, help="M[dest,soure]: M[AF,B] (backward time) ; Set African -> ancestral Eurasian migration rate (forward time) ; default=15e-5")
+parser.add_option("--migration_B_AF", action="store", type="float", dest="m_B_AF", default=15e-5, help="M[dest,soure]: M[B,AF] (backward time) ; Set African <- ancestral Eurasian migration rate ; default=15e-5")
 
-parser.add_option("--migration_AF_EU", action="store", type="float", dest="m_AF_EU", default=2.5e-5, help="Set African -> European migration rate ; default=2.5e-5")
-parser.add_option("--migration_EU_AF", action="store", type="float", dest="m_EU_AF", default=2.5e-5, help="Set African <- European migration rate ; default=2.5e-5")
+parser.add_option("--migration_AF_EU", action="store", type="float", dest="m_AF_EU", default=2.5e-5, help="M[dest,soure]: M[AF,EU] (backward time) ; Set African -> European migration rate ; default=2.5e-5")
+parser.add_option("--migration_EU_AF", action="store", type="float", dest="m_EU_AF", default=2.5e-5, help="M[dest,soure]: M[EU,AF] (backward time) ; Set African <- European migration rate ; default=2.5e-5")
 
-parser.add_option("--migration_AF_AS", action="store", type="float", dest="m_AF_AS", default=0.78e-5, help="Set African -> Asian migration rate ; default=0.78e-5")
-parser.add_option("--migration_AS_AF", action="store", type="float", dest="m_AS_AF", default=0.78e-5, help="Set African <- Asian migration rate ; default=0.78e-5")
+parser.add_option("--migration_AF_AS", action="store", type="float", dest="m_AF_AS", default=0.78e-5, help="M[dest,soure]: M[AF,AS] (backward time) ; Set African -> Asian migration rate ; default=0.78e-5")
+parser.add_option("--migration_AS_AF", action="store", type="float", dest="m_AS_AF", default=0.78e-5, help="M[dest,soure]: M[AS,AF] (backward time) ; Set African <- Asian migration rate ; default=0.78e-5")
 
-parser.add_option("--migration_EU_AS", action="store", type="float", dest="m_EU_AS", default=3.11e-5, help="Set European -> Asian migration rate ; default=3.11e-5")
-parser.add_option("--migration_AS_EU", action="store", type="float", dest="m_AS_EU", default=3.11e-5, help="Set European <- Asian migration rate ; default=3.11e-5")
+parser.add_option("--migration_EU_AS", action="store", type="float", dest="m_EU_AS", default=3.11e-5, help="M[dest,soure]: M[EU,AS] (backward time) ; Set European -> Asian migration rate ; default=3.11e-5")
+parser.add_option("--migration_AS_EU", action="store", type="float", dest="m_AS_EU", default=3.11e-5, help="M[dest,soure]: M[AS,EU] (backward time) ; Set European <- Asian migration rate ; default=3.11e-5")
 
 
 (options, args) = parser.parse_args()
@@ -255,6 +256,8 @@ elif (options.haplo == "F4Dstat"):
             t_n1_n2 = options.t_n1_n2
             length = options.length
             seed = options.seed
+            m_AF_B = options.m_AF_B
+            m_B_AF = options.m_B_AF
 
 
             geno_outfile = gzip.open(outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')  ##  sim.eigenstratgeno.n1_0.01_n2_0.05_200

@@ -110,6 +110,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     m_AS_AF = m_AS_AF
     m_AS_EU = m_AS_EU
 
+    ####
     m_N1_N2 = 0
     m_N1_AF = 0
     m_N1_EU = 0
@@ -166,37 +167,50 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         [      0, m_N1_N2, m_N1_AF, m_N1_EU, m_N1_AS, m_N1_CH, m_DE_N1],
         [m_N1_N2,       0, m_N2_AF, m_N2_EU, m_N2_AS, m_N2_CH, m_DE_N2],
         [m_N1_AF, m_N2_AF,       0, m_AF_EU, m_AF_AS, m_AF_CH, m_DE_AF],
-        [m_N1_EU, m_N2_EU, m_AF_EU,       0, m_EU_AS, m_EU_CH, m_DE_EU],
-        [m_N1_AS, m_N2_AS, m_AF_AS, m_EU_AS,       0, m_AS_CH, m_DE_AS],
+        [m_N1_EU, m_N2_EU, m_EU_AF,       0, m_EU_AS, m_EU_CH, m_DE_EU],
+        [m_N1_AS, m_N2_AS, m_AS_AF, m_AS_EU,       0, m_AS_CH, m_DE_AS],
         [m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH],
         [m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0]
     ]
+
+    ## I think when msprime writes out the migration matrix in debugger, it transposes the matrix
+    ## so use some dummy values along the top row to check that the matrix is set up the way you think it should be
+    # migration_matrix = [
+    #     [      0, m_N1_N2, m_N1_AF, m_N1_EU, m_N1_AS, m_N1_CH, 0.01],
+    #     [m_N1_N2,       0, m_N2_AF, m_N2_EU, m_N2_AS, m_N2_CH, m_DE_N2],
+    #     [m_N1_AF, m_N2_AF,       0, m_AF_EU, m_AF_AS, m_AF_CH, m_DE_AF],
+    #     [m_N1_EU, m_N2_EU, m_EU_AF,       0, m_EU_AS, m_EU_CH, m_DE_EU],
+    #     [m_N1_AS, m_N2_AS, m_AS_AF, m_AS_EU,       0, m_AS_CH, m_DE_AS],
+    #     [m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH],
+    #     [m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0]
+    # ]
+
     one_pulse = [
-        msprime.PopulationParametersChange(time = T_ACL_GRW, initial_size = N_AF0, growth_rate = 0, population_id = 2),        # stop rapid population growth in AF
-        msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
-        msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
-        msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
-        msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
-        msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
-        msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
-        msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
-        msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-        #msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3),  # population bottleneck of B begins
-        #msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck ends shortly before initial admixture
-        msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1 ), # Neand1 to EUR_EAS pulse of introgression
-        msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
-        msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
-        msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
-        msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
-        msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
-        msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
-        msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
-        msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
-        msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
-        msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, initial_size = N_AF0, growth_rate = 0, population_id = 2),        # stop rapid population growth in AF
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
+        # msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
+        # msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
+        # msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
+        # msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
+        # msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
+        # #msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3),  # population bottleneck of B begins
+        # #msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck ends shortly before initial admixture
+        # msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1 ), # Neand1 to EUR_EAS pulse of introgression
+        # msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
+        # msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
+        # msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
+        # msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
+        # msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        # msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
+        # msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
+        # msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
+        # msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
+        # msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
+        # msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
     ]
     two_pulse = [
         msprime.PopulationParametersChange(time = T_ACL_GRW, initial_size = N_AF0, growth_rate = 0, population_id = 2),        # stop rapid population growth in AF
@@ -209,7 +223,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
         msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
         msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_B_AF, matrix_index = (3, 2)),
         msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
         #msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3), # population bottleneck of B begins
         #msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck of B ends shortly before initial admixture
@@ -235,7 +249,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 
     if (haplo == "debug"):
 ######### DEBUG OPTION #############
-            dp = msprime.DemographyDebugger(
+            db = msprime.DemographyDebugger(
                         Ne = N_A,
                         population_configurations =  [
                         msprime.PopulationConfiguration(
@@ -256,7 +270,10 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                         migration_matrix = migration_matrix,
                         demographic_events = demographic_events
                         )
-            dp.print_history()
+
+
+            print(migration_matrix)
+            db.print_history()
 
 
     elif (haplo == "F4Dstat"):
@@ -346,6 +363,12 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     m_AF_EU = m_AF_EU
     m_AF_AS = m_AF_AS
     m_EU_AS = m_EU_AS
+
+    m_B_AF = m_B_AF
+    m_EU_AF = m_EU_AF
+    m_AS_AF = m_AS_AF
+    m_AS_EU = m_AS_EU
+
     ####
     m_N1_N2 = 0
     m_N1_AF = 0
@@ -403,37 +426,39 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         [      0, m_N1_N2, m_N1_AF, m_N1_EU, m_N1_AS, m_N1_CH, m_DE_N1],
         [m_N1_N2,       0, m_N2_AF, m_N2_EU, m_N2_AS, m_N2_CH, m_DE_N2],
         [m_N1_AF, m_N2_AF,       0, m_AF_EU, m_AF_AS, m_AF_CH, m_DE_AF],
-        [m_N1_EU, m_N2_EU, m_AF_EU,       0, m_EU_AS, m_EU_CH, m_DE_EU],
-        [m_N1_AS, m_N2_AS, m_AF_AS, m_EU_AS,       0, m_AS_CH, m_DE_AS],
+        [m_N1_EU, m_N2_EU, m_EU_AF,       0, m_EU_AS, m_EU_CH, m_DE_EU],
+        [m_N1_AS, m_N2_AS, m_AS_AF, m_AS_EU,       0, m_AS_CH, m_DE_AS],
         [m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH],
         [m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0]
     ]
     one_pulse = [
-        msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
-        msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-        msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3),  # population bottleneck of B begins
-        msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck ends shortly before initial admixture
-        msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1 ), # Neand1 to EUR_EAS pulse of introgression
-        msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
-        msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_N_BN, initial_size = N_N_BN, growth_rate = 0, population_id = 0), # Neand1 has short bottleneck
-        msprime.PopulationParametersChange(time = T_N_BN + 20, initial_size = N_N1, growth_rate = 0, population_id = 0), # Neand1 bottleneck ends
-        msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
-        msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
-        msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
-        msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
-        msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
-        msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
-        msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
-        msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
+        # msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
+        # msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
+        # msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3),  # population bottleneck of B begins
+        # msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck ends shortly before initial admixture
+        # msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1 ), # Neand1 to EUR_EAS pulse of introgression
+        # msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
+        # msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
+        # msprime.PopulationParametersChange(time = T_N_BN, initial_size = N_N_BN, growth_rate = 0, population_id = 0), # Neand1 has short bottleneck
+        # msprime.PopulationParametersChange(time = T_N_BN + 20, initial_size = N_N1, growth_rate = 0, population_id = 0), # Neand1 bottleneck ends
+        # msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
+        # msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        # msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
+        # msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
+        # msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
+        # msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
+        # msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
+        # msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
     ]
     two_pulse = [
         msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
         msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_B_AF, matrix_index = (3, 2)),
         msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-               msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3), # population bottleneck of B begins
+        msprime.PopulationParametersChange(time = T_B_BN, initial_size = N_B_BN, growth_rate = 0, population_id = 3), # population bottleneck of B begins
         msprime.PopulationParametersChange(time = T_B_BN + 20, initial_size = N_B, growth_rate = 0, population_id = 3), # population bottleneck of B ends shortly before initial admixture
         msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1), # Neand1 to EUR_EAS pulse of introgression
         msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
@@ -458,7 +483,7 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 
     if (haplo == "debug"):
 ######### DEBUG OPTION #############
-            dp = msprime.DemographyDebugger(
+            db = msprime.DemographyDebugger(
                         Ne = N_A,
                         population_configurations =  [
                         msprime.PopulationConfiguration(
@@ -479,7 +504,8 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                         migration_matrix = migration_matrix,
                         demographic_events = demographic_events
                         )
-            dp.print_history()
+            print(migration_matrix)
+            db.print_history()
 
 
 
@@ -576,6 +602,12 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     m_AF_EU = m_AF_EU
     m_AF_AS = m_AF_AS
     m_EU_AS = m_EU_AS
+
+    m_B_AF = m_B_AF
+    m_EU_AF = m_EU_AF
+    m_AS_AF = m_AS_AF
+    m_AS_EU = m_AS_EU
+
     ####
     m_N1_N2 = 0
     m_N1_AF = 0
@@ -644,39 +676,39 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         [      0, m_N1_N2, m_N1_AF, m_N1_EU, m_N1_AS, m_N1_CH, m_DE_N1, m_SP_N1],
         [m_N1_N2,       0, m_N2_AF, m_N2_EU, m_N2_AS, m_N2_CH, m_DE_N2, m_SP_N2],
         [m_N1_AF, m_N2_AF,       0, m_AF_EU, m_AF_AS, m_AF_CH, m_DE_AF, m_SP_AF],
-        [m_N1_EU, m_N2_EU, m_AF_EU,       0, m_EU_AS, m_EU_CH, m_DE_EU, m_SP_EU],
-        [m_N1_AS, m_N2_AS, m_AF_AS, m_EU_AS,       0, m_AS_CH, m_DE_AS, m_SP_AS],
+        [m_N1_EU, m_N2_EU, m_EU_AF,       0, m_EU_AS, m_EU_CH, m_DE_EU, m_SP_EU],
+        [m_N1_AS, m_N2_AS, m_AS_AF, m_AS_EU,       0, m_AS_CH, m_DE_AS, m_SP_AS],
         [m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH, m_SP_CH],
         [m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0, m_SP_DE],
         [m_SP_N1, m_SP_N2, m_SP_AF, m_SP_EU, m_SP_AS, m_SP_CH, m_SP_DE,       0]
     ]
     one_pulse = [
-        msprime.PopulationParametersChange(time = T_ACL_GRW, initial_size = N_AF0, growth_rate = 0, population_id = 2),        # stop rapid population growth in AF
-        msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
-        msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
-        msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
-        msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
-        msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
-        msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
-        msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
-        msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-        msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
-        msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
-        msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
-        msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
-        msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
-        msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
-        msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
-        msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
-        msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
-        msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
-        msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
-        msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
-        msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
-        msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, initial_size = N_AF0, growth_rate = 0, population_id = 2),        # stop rapid population growth in AF
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
+        # msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
+        # msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
+        # msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
+        # msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
+        # msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
+        # msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
+        # msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
+        # msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
+        # msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
+        # msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
+        # msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
+        # msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
+        # msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
+        # msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
+        # msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
+        # msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        # msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
+        # msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
+        # msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
+        # msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
+        # msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
+        # msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
     ]
 
     two_pulse = [
@@ -690,7 +722,7 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
         msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
         msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_B_AF, matrix_index = (3, 2)),
         msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
         msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
         msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
@@ -716,7 +748,7 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 
     if (haplo == "debug"):
 ######### DEBUG OPTION #############
-            dp = msprime.DemographyDebugger(
+            db = msprime.DemographyDebugger(
                         Ne = N_A,
                         population_configurations =  [
                         msprime.PopulationConfiguration(
@@ -739,7 +771,8 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                         migration_matrix = migration_matrix,
                         demographic_events = demographic_events
                         )
-            dp.print_history()
+            print(migration_matrix)
+            db.print_history()
 
 
     elif (haplo == "F4Dstat"):
