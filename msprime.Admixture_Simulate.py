@@ -154,6 +154,20 @@ elif (options.outdir == "SplitPop"):
                         options.m_AF_EU, options.m_EU_AF,
                         options.m_EU_AS, options.m_AS_EU)
 
+elif (options.outdir == "test"):
+        simulation = msprime_demo_models.out_of_africa(
+                        options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
+                        options.pulses,
+                        options.seed,
+                        options.n1_admix_prop, options.n2_admix_prop,
+                        options.outdir,
+                        options.t_n1_n2,
+                        options.haplo,
+                        options.length,
+                        options.m_AF_B, options.m_B_AF,
+                        options.m_AF_AS, options.m_AS_AF,
+                        options.m_AF_EU, options.m_EU_AF,
+                        options.m_EU_AS, options.m_AS_EU)
 
 ## Define the sample indices
 EU_count = options.EU_sample_size
@@ -258,11 +272,18 @@ elif (options.haplo == "F4Dstat"):
             seed = options.seed
             m_AF_B = options.m_AF_B
             m_B_AF = options.m_B_AF
+            m_AF_EU = options.m_AF_EU
+            m_EU_AF = options.m_EU_AF
 
+            tag = 'n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_mAfB_'+str(m_AF_B)+'_mBAf_'+str(m_B_AF)+'_mAfEu_'+str(m_AF_EU)+'_mEuAf_'+str(m_EU_AF)+'_'+str(seed)
 
-            geno_outfile = gzip.open(outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')  ##  sim.eigenstratgeno.n1_0.01_n2_0.05_200
-            snp_outfile = gzip.open(outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
-            ind_outfile = gzip.open(outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
+            # geno_outfile = gzip.open(outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')  ##  sim.eigenstratgeno.n1_0.01_n2_0.05_200
+            # snp_outfile = gzip.open(outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
+            # ind_outfile = gzip.open(outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
+
+            geno_outfile = gzip.open(outdir+'.eigenstratgeno.'+tag+'.gz', 'wb')  ##  sim.eigenstratgeno.n1_0.01_n2_0.05_200
+            snp_outfile = gzip.open(outdir+'.snp.'+tag+'.gz', 'wb')
+            ind_outfile = gzip.open(outdir+'.ind.'+tag+'.gz', 'wb')
 
             rs_num = 0
 
@@ -298,10 +319,16 @@ elif (options.haplo == "F4Dstat"):
                     snp_outfile.write(line) # write snp_allele info to .snp file
 
 
-            parF4_outfile = gzip.open('parfile.F4stat.'+outdir+'.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
-            parF4_outfile.write('genotypename: '+outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
-            parF4_outfile.write('snpname: '+outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
-            parF4_outfile.write('indivname: '+outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
+            # parF4_outfile = gzip.open('parfile.F4stat.'+outdir+'.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'.gz', 'wb')
+            # parF4_outfile.write('genotypename: '+outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
+            # parF4_outfile.write('snpname: '+outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
+            # parF4_outfile.write('indivname: '+outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed)+'\n')
+            # parF4_outfile.write('popfilename: sim.popfile_F4stat'+'\n')
+
+            parF4_outfile = gzip.open('parfile.F4stat.'+outdir+'.'+tag+'.gz', 'wb')
+            parF4_outfile.write('genotypename: '+outdir+'.eigenstratgeno.'+tag+'\n')
+            parF4_outfile.write('snpname: '+outdir+'.snp.'+tag+'\n')
+            parF4_outfile.write('indivname: '+outdir+'.ind.'+tag+'\n')
             parF4_outfile.write('popfilename: sim.popfile_F4stat'+'\n')
 #
 #            parD_outfile = open('parfile.Dstat.'+outdir+'.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_t_'+str(t_n1_n2)+'_'+str(seed), 'w')

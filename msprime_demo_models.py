@@ -809,3 +809,148 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 
 #######################################
 #######################################
+
+def out_of_africa(S_AF, S_EU, S_AS,
+                pulses, seed,
+                n1_admix_prop, n2_admix_prop,
+                outdir, t_n1_n2,
+                haplo, length,
+                m_AF_B, m_B_AF,
+                m_AF_AS, m_AS_AF,
+                m_AF_EU, m_EU_AF,
+                m_EU_AS, m_AS_EU):
+    # First we set out the maximum likelihood values of the various parameters
+    # given in Table 1.
+    N_A = 7300
+    N_B = 2100
+    N_AF = 12300
+    N_oAF = 1000
+    N_EU0 = 1000
+    N_AS0 = 510
+    N_CH = 1000
+    # Times are provided in years, so we convert into generations.
+    generation_time = 25
+    T_AF = 220e3 / generation_time
+    T_oAF_AF = 200e3/generation_time    # creat a split between and African outgroup and main African group
+    T_B = 140e3 / generation_time
+    T_EU_AS = 21.2e3 / generation_time
+    # We need to work out the starting (diploid) population sizes based on
+    # the growth rates provided for these two populations
+    r_EU = 0.004
+    r_AS = 0.0055
+    N_EU = N_EU0 / math.exp(-r_EU * T_EU_AS)
+    N_AS = N_AS0 / math.exp(-r_AS * T_EU_AS)
+    # Migration rates during the various epochs.
+    # m_AF_B = 25e-5
+    # m_AF_EU = 3e-5
+    # m_AF_AS = 1.9e-5
+    # m_EU_AS = 9.6e-5
+
+    m_AF_B = m_AF_B
+    m_AF_EU = m_AF_EU
+    m_AF_AS = m_AF_AS
+    m_EU_AS = m_EU_AS
+
+    m_B_AF = m_B_AF
+    m_EU_AF = m_EU_AF
+    m_AS_AF = m_AS_AF
+    m_AS_EU = m_AS_EU
+
+
+    # Population IDs correspond to their indexes in the population
+    # configuration array. Therefore, we have 0=YRI, 1=CEU and 2=CHB
+    # initially.
+    population_configurations = [
+        msprime.PopulationConfiguration(
+            initial_size=N_oAF),
+        msprime.PopulationConfiguration(
+            initial_size=N_AF),
+        msprime.PopulationConfiguration(
+            initial_size=N_EU, growth_rate=r_EU),
+        msprime.PopulationConfiguration(
+            initial_size=N_AS, growth_rate=r_AS),
+        msprime.PopulationConfiguration(
+            initial_size=N_CH)
+    ]
+
+
+    # specify desired sample
+    # N1_sample = [msprime.Sample(population = 0, time = 50e3 / generation_time)] * S_N1
+    # N2_sample = [msprime.Sample(population = 1, time = 50e3 / generation_time)] * S_N2
+    oAF_sample = [msprime.Sample(population = 0, time = 0)] * 2
+    AF_sample = [msprime.Sample(population = 1, time = 0)] * S_AF
+    EU_sample = [msprime.Sample(population = 2, time = 0)] * S_EU
+    AS_sample = [msprime.Sample(population = 3, time = 0)] * S_AS
+    CH_sample = [msprime.Sample(population = 4, time = 0)] * 2
+    # DE_sample = [msprime.Sample(population = 6, time = 50e3/ generation_time)] * 2
+    # samples = N1_sample + N2_sample + AF_sample + EU_sample + AS_sample + CH_sample + DE_sample
+    samples = oAF_sample + AF_sample + EU_sample + AS_sample + CH_sample
+
+    migration_matrix = [
+        [0,     0,      0,      0,      0],
+        [0,     0, m_AF_EU, m_AF_AS,    0],
+        [0, m_EU_AF,      0, m_EU_AS,   0],
+        [0, m_AS_AF, m_AS_EU,       0,  0],
+        [0,     0,      0,      0,      0]
+    ]
+
+
+    demographic_events = [
+        # CEU and CHB merge into B with rate changes at T_EU_AS
+        msprime.MassMigration(
+            time=T_EU_AS, source=3, destination=2, proportion=1.0),
+        msprime.MigrationRateChange(
+            time=T_EU_AS, rate=0),
+        msprime.MigrationRateChange(
+            time=T_EU_AS, rate=m_AF_B, matrix_index=(2, 1)),
+        msprime.MigrationRateChange(
+            time=T_EU_AS, rate=m_AF_B, matrix_index=(1, 2)),
+        msprime.PopulationParametersChange(
+            time=T_EU_AS, initial_size=N_B, growth_rate=0, population_id=2),
+        # Population B merges into YRI at T_B
+        msprime.MassMigration(
+            time=T_B, source=2, destination=1, proportion=1.0),
+        msprime.MassMigration(
+            time=T_oAF_AF, source = 0, destination = 1, proportion=1.0),
+        # Size changes to N_A at T_AF
+        msprime.PopulationParametersChange(
+            time=T_AF, initial_size=N_A, population_id=1)
+    ]
+    # Use the demography debugger to print out the demographic history
+    # that we have just described.
+    if (haplo == "debug"):
+######### DEBUG OPTION #############
+            db = msprime.DemographyDebugger(
+                        Ne = N_A,
+                        population_configurations =  [
+                        msprime.PopulationConfiguration(
+                            initial_size=N_oAF, sample_size = 2),
+                        msprime.PopulationConfiguration(
+                            initial_size=N_AF, sample_size = 2),
+                        msprime.PopulationConfiguration(
+                            initial_size=N_EU, growth_rate=r_EU, sample_size = 2),
+                        msprime.PopulationConfiguration(
+                            initial_size=N_AS, growth_rate=r_AS, sample_size = 2),
+                        msprime.PopulationConfiguration(
+                            initial_size=N_CH, sample_size = 2)
+                        ],
+                        migration_matrix = migration_matrix,
+                        demographic_events = demographic_events
+                        )
+            print(migration_matrix)
+            db.print_history()
+
+    elif (haplo == "F4Dstat"):
+    ####### HAPLOTYPE SIMULATION FOR F4 and DSTAT CALCULATIONS ############
+            return msprime.simulate(
+                            Ne = N_A,
+                            length = length,
+                            recombination_rate = recombination_rate,
+                            mutation_rate = mutation_rate,
+                            samples = samples,
+                            population_configurations = population_configurations,
+                            migration_matrix = migration_matrix,
+                            demographic_events = demographic_events,
+                            num_replicates = 20,
+                            random_seed = seed
+                            )
