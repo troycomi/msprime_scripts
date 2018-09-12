@@ -393,7 +393,7 @@ elif (options.haplo == "vcf"):
 
                     vcf_outfile = sys.stdout
                     #vcf_outfile = gzip.open(outdir+'_'+pop+'_'+str(seed)+'_n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'.vcf.gz', 'wb')  ## Tenn_nonAfr_100_n1_0.01_n2_0.01.vcf.gz
-                    tree_sequence.write_vcf(vcf_outfile, 2)
+                    tree_sequence.write_vcf(vcf_outfile, 2, str(seed))
                     #tree_sequence.write_vcf(sys.stdout,2)
 
             vcf_outfile.close()
