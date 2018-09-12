@@ -86,7 +86,7 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
     m_PULSE1 = n1_admix_prop # an instantaneous movement of population from EU_AS to Neand1 (backward in time)
     m_PULSE2 = n2_admix_prop
     print(m_PULSE1)
-    
+
     # Population IDs correspond to their indexes in the population
     # configuration array. Therefore, we have 0=YRI, 1=CEU and 2=CHB
     # initially.
@@ -101,12 +101,12 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
         initial_size = N_EU, growth_rate = r_EU), # population 3
         msprime.PopulationConfiguration(
         initial_size = N_AS, growth_rate = r_AS), # population 4
-	msprime.PopulationConfiguration(
-	initial_size = N_CH), # popultaion 5
-	msprime.PopulationConfiguration(
-	initial_size = N_DE),  # population 6
-	msprime.PopulationConfiguration(
-	initial_size = N_SP)	# population 7
+        msprime.PopulationConfiguration(
+        initial_size = N_CH), # popultaion 5
+        msprime.PopulationConfiguration(
+        initial_size = N_DE),  # population 6
+        msprime.PopulationConfiguration(
+        initial_size = N_SP)        # population 7
     ]
     # specify desired sample
     N1_sample = [msprime.Sample(population = 0, time = 100e3 / generation_time)] * S_N1
@@ -124,9 +124,9 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
         [m_N1_AF, m_N2_AF,       0, m_AF_EU, m_AF_AS, m_AF_CH, m_DE_AF, m_SP_AF],
         [m_N1_EU, m_N2_EU, m_AF_EU,       0, m_EU_AS, m_EU_CH, m_DE_EU, m_SP_EU],
         [m_N1_AS, m_N2_AS, m_AF_AS, m_EU_AS,       0, m_AS_CH, m_DE_AS, m_SP_AS],
-	[m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH, m_SP_CH],
-	[m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0, m_SP_DE],
-	[m_SP_N1, m_SP_N2, m_SP_AF, m_SP_EU, m_SP_AS, m_SP_CH, m_SP_DE,       0]
+        [m_N1_CH, m_N2_CH, m_AF_CH, m_EU_CH, m_AS_CH,       0, m_DE_CH, m_SP_CH],
+        [m_DE_N1, m_DE_N2, m_DE_AF, m_DE_EU, m_DE_AS, m_DE_CH,       0, m_SP_DE],
+        [m_SP_N1, m_SP_N2, m_SP_AF, m_SP_EU, m_SP_AS, m_SP_CH, m_SP_DE,       0]
     ]
     one_pulse = [
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
@@ -134,68 +134,68 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
         msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
         msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
         msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-	msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
-	msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
-	msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
-	msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
-        msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
-	msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
-        msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
-        msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
-	msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
-	msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
-        msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
-        msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
-	msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
-	msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
-    ]
-
-    two_pulse = [
-        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
-	msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
-        msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
-        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
-        msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
-	msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
-	msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
-	msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
-	msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
+        msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
+        msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
+        msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
+        msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
         msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
         msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
         msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
         msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
         msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
-	msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
-	msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
+        msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
+        msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
         msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
         msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
-	msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_CH
-	msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
+        msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_Ch
+        msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
     ]
-    
+
+    two_pulse = [
+        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
+        msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
+        msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (2, 3)), # migration between "B" and Africa begins
+        msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)),
+        msprime.PopulationParametersChange(time = T_EU_AS, initial_size = N_B, growth_rate = 0, population_id = 3), # set parameters of population "B"
+        msprime.MassMigration(time = T_SP, source = 3, destination = 7, proportion = 0.1),  # Population splits off of EUR_EAS, 10% migration rate to SplitPop
+        msprime.PopulationParametersChange(time = T_SP, initial_size = N_SP, growth_rate = 0, population_id = 7), # SplitPop is set at size Ne=100
+        msprime.MassMigration(time = T_PULSE1, source = 7, destination = 0, proportion = m_PULSE1 ), # Neand1 to SplitPop pulse of introgression
+        msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
+        msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
+        msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
+        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
+        msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
+        msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
+        msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
+        msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
+        msprime.PopulationParametersChange(time = T_MH_N, initial_size = N_A, population_id = 2), # set parameters of ancetral hominin population
+        msprime.MassMigration(time = T_MH_CH, source = 5, destination = 2, proportion = 1.0), # Chimp lineage merges into ancestral hominin population at time T_MH_CH
+        msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
+    ]
+
    #    dp = msprime.DemographyDebugger(
-#    		    Ne = N_A,
-#    		    population_configurations = [
-#					        msprime.PopulationConfiguration(
-#					        initial_size = N_N1, sample_size=1), # population 0
-#					        msprime.PopulationConfiguration(
-#					        initial_size = N_N2, sample_size=1), # population 1
-#					        msprime.PopulationConfiguration(
-#					        initial_size = N_AF, sample_size=1), # population 2
-#					        msprime.PopulationConfiguration(
-#					        initial_size = N_EU, growth_rate = r_EU, sample_size=1), # population 3
-#					        msprime.PopulationConfiguration(
-#					        initial_size = N_AS, growth_rate = r_AS, sample_size=1), # population 4
-#						msprime.PopulationConfiguration(
-#						initial_size = N_CH, sample_size=1),
-#						msprime.PopulationConfiguration(
-#						initial_size = N_DE, sample_size=1)
-#					    ],
-#    		    migration_matrix = migration_matrix,
-#    		    demographic_events = demographic_events
-#    		    )
+#                        Ne = N_A,
+#                        population_configurations = [
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_N1, sample_size=1), # population 0
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_N2, sample_size=1), # population 1
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_AF, sample_size=1), # population 2
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_EU, growth_rate = r_EU, sample_size=1), # population 3
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_AS, growth_rate = r_AS, sample_size=1), # population 4
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_CH, sample_size=1),
+#                                                msprime.PopulationConfiguration(
+#                                                initial_size = N_DE, sample_size=1)
+#                                            ],
+#                        migration_matrix = migration_matrix,
+#                        demographic_events = demographic_events
+#                        )
     #dp.print_history()
 
     if (pulses == 1):
@@ -206,29 +206,29 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
 
 ####### HAPLOTYPE SIMULATION FOR F4 AND DSTAT CALCULATIONS ############
 
-    length = 1e6	# simulate 1Mb chromosomes for faster F4 and D calculation
+    length = 1e6        # simulate 1Mb chromosomes for faster F4 and D calculation
     recombination_rate = 2e-8
     mutation_rate = 1e-8 # see Shendure and Akey, 2015
 #
 #
 #    replicates = msprime.simulate(
-#		    Ne = N_A,
-#		    length = length,
-#		    recombination_rate = recombination_rate,
-#		    mutation_rate = mutation_rate,
-#		    samples = samples,
-#		    population_configurations = population_configurations,
-#		    migration_matrix = migration_matrix,
-#		    demographic_events = demographic_events,
-#		    num_replicates = 20,
-#		    random_seed = seed
-#		    )
+#                    Ne = N_A,
+#                    length = length,
+#                    recombination_rate = recombination_rate,
+#                    mutation_rate = mutation_rate,
+#                    samples = samples,
+#                    population_configurations = population_configurations,
+#                    migration_matrix = migration_matrix,
+#                    demographic_events = demographic_events,
+#                    num_replicates = 20,
+#                    random_seed = seed
+#                    )
 #    geno_outfile = open(outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed), 'w')  ##  sim.eigenstratgeno.n1_0.01_n2_0.05_200
 #    snp_outfile = open(outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed), 'w')
 #    ind_outfile = open(outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed), 'w')
 #
 #    rs_num = 0
-#	#    for t, tree_sequence in enumerate(replicates):
+#        #    for t, tree_sequence in enumerate(replicates):
 #
 #
 #    for t, tree_sequence in enumerate(replicates): # enumerate creates a list of tuples, where each chrom is a tuple with an index and the tree e.g. [(1,Tree1), (2,Tree2)...]
@@ -251,13 +251,13 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
 #                                pop='Deni'
 #                        ind_entry = 'Sample_'+str(i)+'\t'+'U'+'\t'+pop  ## Write, as a string, the sample entry using the population read from Tree1
 #                        ind_outfile.write(ind_entry+'\n')
-#	###  WRITE THE .EIGENSTRATGENO AND .SNP FILES  ###
-#	chr_num = t+1
+#        ###  WRITE THE .EIGENSTRATGENO AND .SNP FILES  ###
+#        chr_num = t+1
 #        for variant in tree_sequence.variants():
-#	    rs_num+=1
-#	    geno_outfile.write(variant.genotypes+'\n') # write genotypes to .eigenstratgeno file
-#	    line = str('rs'+str(rs_num)+'\t'+str(chr_num)+'\t'+str(variant.position/length)+'\t'+str(int(variant.position))+'\t'+'A'+'\t'+'T'+'\n')
-#	    snp_outfile.write(line) # write snp_allele info to .snp file
+#            rs_num+=1
+#            geno_outfile.write(variant.genotypes+'\n') # write genotypes to .eigenstratgeno file
+#            line = str('rs'+str(rs_num)+'\t'+str(chr_num)+'\t'+str(variant.position/length)+'\t'+str(int(variant.position))+'\t'+'A'+'\t'+'T'+'\n')
+#            snp_outfile.write(line) # write snp_allele info to .snp file
 #
 #
 #    parF4_outfile = open('parfile.F4stat.'+outdir+'.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed), 'w')
@@ -265,7 +265,7 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
 #    parF4_outfile.write('snpname: '+outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed)+'\n')
 #    parF4_outfile.write('indivname: '+outdir+'.ind.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed)+'\n')
 #    parF4_outfile.write('popfilename: sim.popfile_F4stat'+'\n')
-#  
+#
 #    parD_outfile = open('parfile.Dstat.'+outdir+'.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed), 'w')
 #    parD_outfile.write('genotypename: '+outdir+'.eigenstratgeno.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed)+'\n')
 #    parD_outfile.write('snpname: '+outdir+'.snp.n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'_'+str(seed)+'\n')
@@ -282,17 +282,17 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
 ####### HAPLOTYPE SIMULATION FOR DESERT DISTRIBUTION ############
 
     return msprime.simulate(
-		    Ne = N_A,
-		    length = 1e7,	# Simulate 10Mb chromosomes for looking at desert distribution
-		    recombination_rate = recombination_rate,
-		    mutation_rate = mutation_rate,
-		    samples = samples,
-		    population_configurations = population_configurations,
-		    migration_matrix = migration_matrix,
-		    demographic_events = demographic_events,
-		    num_replicates = 1,
-		    random_seed = seed
-		    )
+                    Ne = N_A,
+                    length = 1e7,        # Simulate 10Mb chromosomes for looking at desert distribution
+                    recombination_rate = recombination_rate,
+                    mutation_rate = mutation_rate,
+                    samples = samples,
+                    population_configurations = population_configurations,
+                    migration_matrix = migration_matrix,
+                    demographic_events = demographic_events,
+                    num_replicates = 1,
+                    random_seed = seed
+                    )
 
 ################################
 
@@ -301,8 +301,8 @@ def simulate_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_pro
 simulation = simulate_demography(1, 1, 1, 1006, 1008, options.pulses, options.seed, options.n1_admix_prop, options.n2_admix_prop, options.outdir)
 
 #for t, tree in enumerate(simulation):
-#	size = tree.get_sample_size()
-#	print(size)
+#        size = tree.get_sample_size()
+#        print(size)
 
 
 ##################################
@@ -329,20 +329,20 @@ def get_introgressed_intervals(tree_sequence, human_indices, neand_indices, outd
     for mutation in tree_sequence.mutations():
         mutations.append(mutation.position)
     if (len(mutations) == 0):
-	    #quit()
-	    return
-    
+            #quit()
+            return
+
    #test = print(mutations)
    #return test
-##  PASSED  ##    
+##  PASSED  ##
 
     # store the haplotypes in a list
     haplotypes = []
     for haplotype in tree_sequence.haplotypes():
         haplotypes.append(haplotype)
     if (len(haplotypes) == 0):
-	    #quit()
-	    return
+            #quit()
+            return
 
     #test = print(haplotypes)
     #return test
@@ -380,10 +380,10 @@ def get_introgressed_intervals(tree_sequence, human_indices, neand_indices, outd
 ##  PASSED  ##
 
     if (len(introgression_list) == 0):
-	    #quit()
-	    return
+            #quit()
+            return
     interval_array = np.concatenate(introgression_list)
-    
+
     #test = print(interval_array)
     #return test
 ##  FAILED ; remove 'quit()' replace with 'return None' ; PASSED  ##
@@ -421,56 +421,56 @@ elif (options.pop == "nonAfr"):
 
 ###  FOR EACH SIMULATED CHROMOSOME, PRINT ALL THE INTROGRESSED HAPLOTYPES BELONGING TO THE SPECIFIED NON-AFR POPULATION IN BED FORMAT  ###
 for t, tree in enumerate(simulation):
-	print(str(tree.get_sample_size())+'_'+str(t))
-	#int_results = get_introgressed_intervals(tree, human_samples, N_samples, options.outdir, iteration)
-	#def get_introgressed_intervals(tree_sequence, human_indices, neand_indices, outdir, taskid):
-	get_introgressed_intervals(tree, human_samples, N_samples, options.outdir+'_'+options.pop+'_'+str(options.seed), '_n1_'+str(options.n1_admix_prop)+'_n2_'+str(options.n2_admix_prop))
-	print('DONE')
+        print(str(tree.get_sample_size())+'_'+str(t))
+        #int_results = get_introgressed_intervals(tree, human_samples, N_samples, options.outdir, iteration)
+        #def get_introgressed_intervals(tree_sequence, human_indices, neand_indices, outdir, taskid):
+        get_introgressed_intervals(tree, human_samples, N_samples, options.outdir+'_'+options.pop+'_'+str(options.seed), '_n1_'+str(options.n1_admix_prop)+'_n2_'+str(options.n2_admix_prop))
+        print('DONE')
 
 print('fin')
 
-#	
-#	# choose a random introgressed haplotype and get all overlapping haplotypes
-#	sample_index = random.sample(range(len(int_results.intervals)), 1)[0]
-#	random_interval = pybedtools.BedTool(str(int_results.intervals[sample_index]), from_string = True)
-#	olaps = random_interval.intersect(int_results.intervals, f = 1, wb = True)
-#	start = random_interval[0].start
-#	end = random_interval[0].end
-#	length = end - start
-#	
-#	# find the start and end coordinates of the mutations
-#	m_indices = [index for index, item in enumerate(int_results.mutations) if item >= start and item <= end]
-#	if (len(m_indices) == 0):
-#	    quit()
-#	
-#	m_start = m_indices[0]
-#	m_end = m_indices[-1]
-#	
-#	# get all overlapping haplotypes
-#	int_haps = []
-#	for sample in olaps:
-#	    s_index = int(sample.fields[7])
-#	    int_hap = map(int, int_results.haplotypes[s_index][m_start:m_end + 1])
-#	    int_haps.append(int_hap)
-#	
-#	int_haps = np.matrix(int_haps)
-#	n_haps = int_haps.shape[0]
-#	if (n_haps < 2):
-#	    quit()
-#	
-#	manhattan = scipy.spatial.distance.pdist(int_haps, metric = "cityblock")
-#	pi_mean = np.mean(manhattan)
-#	pi_min = np.min(manhattan)
-#	pi_max = np.max(manhattan)
-#	
-#	# get divergence of each haplotype to the Neandertal haplotype
-#	neand = map(int, int_results.haplotypes[N_samples[0]][m_start:m_end + 1])
-#	ndists = []
-#	for row in int_haps[range(n_haps)]:
-#	    ndists.append(scipy.spatial.distance.cityblock(row, neand))
-#	
-#	ndist_mean = np.mean(ndists)
-#	ndist_min = np.min(ndists)
-#	ndist_max = np.max(ndists)
-#	
-#	print(length, pi_mean, pi_min, pi_max, ndist_mean, ndist_min, ndist_max, n_haps, options.pop, task, sep = "\t")
+#
+#        # choose a random introgressed haplotype and get all overlapping haplotypes
+#        sample_index = random.sample(range(len(int_results.intervals)), 1)[0]
+#        random_interval = pybedtools.BedTool(str(int_results.intervals[sample_index]), from_string = True)
+#        olaps = random_interval.intersect(int_results.intervals, f = 1, wb = True)
+#        start = random_interval[0].start
+#        end = random_interval[0].end
+#        length = end - start
+#
+#        # find the start and end coordinates of the mutations
+#        m_indices = [index for index, item in enumerate(int_results.mutations) if item >= start and item <= end]
+#        if (len(m_indices) == 0):
+#            quit()
+#
+#        m_start = m_indices[0]
+#        m_end = m_indices[-1]
+#
+#        # get all overlapping haplotypes
+#        int_haps = []
+#        for sample in olaps:
+#            s_index = int(sample.fields[7])
+#            int_hap = map(int, int_results.haplotypes[s_index][m_start:m_end + 1])
+#            int_haps.append(int_hap)
+#
+#        int_haps = np.matrix(int_haps)
+#        n_haps = int_haps.shape[0]
+#        if (n_haps < 2):
+#            quit()
+#
+#        manhattan = scipy.spatial.distance.pdist(int_haps, metric = "cityblock")
+#        pi_mean = np.mean(manhattan)
+#        pi_min = np.min(manhattan)
+#        pi_max = np.max(manhattan)
+#
+#        # get divergence of each haplotype to the Neandertal haplotype
+#        neand = map(int, int_results.haplotypes[N_samples[0]][m_start:m_end + 1])
+#        ndists = []
+#        for row in int_haps[range(n_haps)]:
+#            ndists.append(scipy.spatial.distance.cityblock(row, neand))
+#
+#        ndist_mean = np.mean(ndists)
+#        ndist_min = np.min(ndists)
+#        ndist_max = np.max(ndists)
+#
+#        print(length, pi_mean, pi_min, pi_max, ndist_mean, ndist_min, ndist_max, n_haps, options.pop, task, sep = "\t")

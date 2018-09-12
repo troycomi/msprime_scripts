@@ -19,7 +19,7 @@ usage = str("usage: python <script> -p nonAfr -o Tenn -s 1 -i 2 -n 0.02 -d 0.0 -
             "WARNING: options 'haplo' and 'vcf' now write to stdout\n"+
             "WARNING: one-pulse option is deprecated; use -i 2 -n X -d 0.0 for comparable results")
 parser = OptionParser(usage=usage)
-parser.add_option("-p", "--population", action = "store", type = "string", dest = "pop", default="nonAfr", help="call introg_haplotypes in EUR, EAS, or all nonAfr; default=nonAfr")
+parser.add_option("-p", "--population", action = "store", type = "string", dest = "pop", default="nonAfr", help="call introg_haplotypes in AFR, EUR, EAS, nonAfr, or all modHum; default=nonAfr")
 parser.add_option("-o", "--outdir", action = "store", type = "string", dest = "outdir", default="Tenn", help="output directory name, must use model name; default=Tenn")
 parser.add_option("-s", "--seed", action = "store", type = "int", dest = "seed", default=1, help="Set random seed for replicate chromosomes; default=1")
 parser.add_option("-i", "--introgress_pulses", action = "store", type = "int", dest = "pulses", default=2, help="Set number of introgression pulses; default=2")
@@ -177,6 +177,7 @@ N_samples  = range(0, S_N1+S_N2)                # range(0,4) --> 0,1,2,3
 AF_samples = range(S_N1+S_N2, S_N1+S_N2+AF_count)        # range(4,6) --> 4,5
 non_trgt = len(N_samples + AF_samples)                # 6
 nonAfr_samples = range(non_trgt, (EU_count + AS_count + non_trgt))   # range(6, 3046 + 6) ; 3046 <-- 1006 + 2040
+modHum_samples = range( (S_N1+S_N2), (AF_count + EU_count + AS_count + (S_N1+S_N2)) )
 EU_samples = range(non_trgt, (EU_count + non_trgt))
 AS_samples = range((EU_count + non_trgt), (EU_count+AS_count+non_trgt))
 Chimp_samples = range((EU_count+AS_count+non_trgt), (EU_count+AS_count+non_trgt)+2)
@@ -188,6 +189,10 @@ elif (options.pop == "EUR"):
         human_samples = EU_samples
 elif (options.pop == "nonAfr"):
         human_samples = nonAfr_samples
+elif (options.pop == "AFR"):
+        human_samples = AF_samples
+elif (options.pop == "modHum"):
+        human_samples = modHum_samples
 
 
 ###### GET HAPLOTYPES FROM SIMULATED TREES #######
