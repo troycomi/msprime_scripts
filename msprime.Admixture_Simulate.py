@@ -25,6 +25,8 @@ parser.add_option("-s", "--seed", action = "store", type = "int", dest = "seed",
 parser.add_option("-i", "--introgress_pulses", action = "store", type = "int", dest = "pulses", default=2, help="Set number of introgression pulses; default=2")
 parser.add_option("-n", "--neand1_admixture_proportion", action = "store", type = "float", dest = "n1_admix_prop", default=0.02, help="Set N1 admixture proportion; default=0.02")
 parser.add_option("-d", "--deni_admixture_propotion", action = "store", type = "float", dest = "n2_admix_prop", default=0.0, help="Set N2 admixture proportion; default=0.0")
+parser.add_option("--Neand1_sample_size", action = "store", type = "int", dest = "s_n1", default = 2, help="Set Neand1 sample size (haplotypes); default=2")
+parser.add_option("--Neand2_sample_size", action = "store", type = "int", dest = "s_n2", default = 2, help="Set Neand2 sample size (haplotypes); default=2")
 parser.add_option("-t", "--time_N1_N2_split", action = "store", type = "int", dest = "t_n1_n2", default=350, help="Set N1 N2 split time in kya; default=350")
 parser.add_option("-c", "--calls_or_stats", action="store", type = "string", dest = "haplo", default="F4Dstat", help="Pick haplotype calls ('haplo') or 'F4Dstat' or 'vcf' output, or 'debug'; default=F4Dstat")
 parser.add_option("-l", "--length_chrom", action="store", type= "float", dest = "length", default=1e6, help="Define length of simulated chromosome; default=1e6")
@@ -102,13 +104,13 @@ def introgressed_samples_fn(ts, neanderthal_mrca, neanderthal_samples, segments)
 
 print("Model: ", options.outdir, "Seed: ", options.seed, "Neand_Pulse1: ", options.n1_admix_prop, "Neand_Pulse2: ", options.n2_admix_prop, "Length: ", options.length, file=sys.stderr, sep ='\t')
 
-S_N1 = 2
-S_N2 = 2
+S_N1 = options.s_n1
+S_N2 = options.s_n2
 
 if (options.outdir == "Tenn"):
         #Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS, pulses, seed, n1_admix_prop, n2_admix_prop, outdir, t_n1_n2, haplo, length):
         simulation = msprime_demo_models.Tenn_demography(
-                        S_N1, S_N2,
+                        options.s_n1, options.s_n2,
                         options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
                         options.pulses,
                         options.seed,
@@ -124,7 +126,7 @@ if (options.outdir == "Tenn"):
 
 elif (options.outdir == "Sriram"):
         simulation = msprime_demo_models.Sriram_demography(
-                        S_N1, S_N2,
+                        options.s_n1, options.s_n2,
                         options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
                         options.pulses,
                         options.seed,
@@ -140,7 +142,7 @@ elif (options.outdir == "Sriram"):
 
 elif (options.outdir == "SplitPop"):
         simulation = msprime_demo_models.SplitPop_demography(
-                        S_N1, S_N2,
+                        options.s_n1, options.s_n2,
                         options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
                         options.pulses,
                         options.seed,
@@ -393,7 +395,7 @@ elif (options.haplo == "vcf"):
 
                     vcf_outfile = sys.stdout
                     #vcf_outfile = gzip.open(outdir+'_'+pop+'_'+str(seed)+'_n1_'+str(n1_admix_prop)+'_n2_'+str(n2_admix_prop)+'.vcf.gz', 'wb')  ## Tenn_nonAfr_100_n1_0.01_n2_0.01.vcf.gz
-                    tree_sequence.write_vcf(vcf_outfile, 2, str(seed))
+                    tree_sequence.write_vcf(vcf_outfile,2)
                     #tree_sequence.write_vcf(sys.stdout,2)
 
             vcf_outfile.close()
