@@ -49,7 +49,7 @@ mutation_rate = 1.2e-8         # value best matches CWZ data n_region_ind_snps a
 def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                 pulses, seed,
                 n1_admix_prop, n2_admix_prop,
-                outdir, t_n1_n2,
+                outdir, t_n1_n2, t_n1_sample, t_n2_sample,
                 haplo, length,
                 m_AF_B, m_B_AF,
                 m_AF_AS, m_AS_AF,
@@ -71,6 +71,8 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
     T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
+    T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     T_AF = 148e3 / generation_time # African population expansion
     T_B = 100e3 / generation_time # out of Africa
     T_PULSE1 = 55e3 / generation_time # Neandertal introgression pulse 1
@@ -154,8 +156,8 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         initial_size = N_DE)  #population 6
     ]
     # specify desired sample
-    N1_sample = [msprime.Sample(population = 0, time = 50e3 / generation_time)] * S_N1
-    N2_sample = [msprime.Sample(population = 1, time = 50e3 / generation_time)] * S_N2
+    N1_sample = [msprime.Sample(population = 0, time = T_N1_SAMPLE)] * S_N1
+    N2_sample = [msprime.Sample(population = 1, time = T_N2_SAMPLE)] * S_N2
     AF_sample = [msprime.Sample(population = 2, time = 0)] * S_AF
     EU_sample = [msprime.Sample(population = 3, time = 0)] * S_EU
     AS_sample = [msprime.Sample(population = 4, time = 0)] * S_AS
@@ -209,7 +211,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
         msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
         msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
-        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
+        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 0, proportion = m_PULSE2), # Neand1 to EAS pulse of introgression
         msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
         msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
@@ -305,7 +307,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                 pulses, seed,
                 n1_admix_prop, n2_admix_prop,
-                outdir, t_n1_n2,
+                outdir, t_n1_n2, t_n1_sample, t_n2_sample,
                 haplo, length,
                 m_AF_B, m_B_AF,
                 m_AF_AS, m_AS_AF,
@@ -328,6 +330,8 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split (700 KYA)
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
     T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
+    T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     #T_N1_N2 = 175e3 / generation_time # Altai/Vindija and Eastern Neandertal popualation split        ### DIFFERENT FROM TENNESSEN
     #T_AF = 220e3 / generation_time # African population expansion
     T_N_BN = 150e3 / generation_time # Neandertal bottleneck                        ### DIFFERENT FROM TENNESSEN
@@ -405,8 +409,8 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         initial_size = N_DE)  #population 6
     ]
     # specify desired sample
-    N1_sample = [msprime.Sample(population = 0, time = 50e3 / generation_time)] * S_N1
-    N2_sample = [msprime.Sample(population = 1, time = 50e3 / generation_time)] * S_N2
+    N1_sample = [msprime.Sample(population = 0, time = T_N1_SAMPLE)] * S_N1
+    N2_sample = [msprime.Sample(population = 1, time = T_N2_SAMPLE)] * S_N2
     AF_sample = [msprime.Sample(population = 2, time = 0)] * S_AF
     EU_sample = [msprime.Sample(population = 3, time = 0)] * S_EU
     AS_sample = [msprime.Sample(population = 4, time = 0)] * S_AS
@@ -444,7 +448,7 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         # msprime.PopulationParametersChange(time = T_MH_CH, initial_size = N_A, population_id = 2) # set parameters of ancestral hominin population
     ]
     two_pulse = [
-        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
+        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 0, proportion = m_PULSE2), # Neand1 to EAS pulse of introgression
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"
         msprime.MigrationRateChange(time = T_EU_AS, rate = 0), # set all migration rates to zero
         msprime.MigrationRateChange(time = T_EU_AS, rate = m_AF_B, matrix_index = (3, 2)), # migration between "B" and Africa begins
@@ -537,7 +541,7 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
 def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
                 pulses, seed,
                 n1_admix_prop, n2_admix_prop,
-                outdir, t_n1_n2,
+                outdir, t_n1_n2, t_n1_sample, t_n2_sample,
                 haplo, length,
                 m_AF_B, m_B_AF,
                 m_AF_AS, m_AS_AF,
@@ -560,6 +564,8 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
     T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
+    T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     T_AF = 148e3 / generation_time # African population expansion
     T_B = 100e3 / generation_time # out of Africa
     T_PULSE1 = 55e3 / generation_time # Neandertal introgression pulse 1
@@ -655,8 +661,8 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     ]
 
     # specify desired sample
-    N1_sample = [msprime.Sample(population = 0, time = 50e3 / generation_time)] * S_N1
-    N2_sample = [msprime.Sample(population = 1, time = 50e3 / generation_time)] * S_N2
+    N1_sample = [msprime.Sample(population = 0, time = T_N1_SAMPLE)] * S_N1
+    N2_sample = [msprime.Sample(population = 1, time = T_N2_SAMPLE)] * S_N2
     AF_sample = [msprime.Sample(population = 2, time = 0)] * S_AF
     EU_sample = [msprime.Sample(population = 3, time = 0)] * S_EU
     AS_sample = [msprime.Sample(population = 4, time = 0)] * S_AS
@@ -708,7 +714,7 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_EU1, population_id = 3),        # stop rapid population growth in EU
         msprime.PopulationParametersChange(time = T_ACL_GRW, growth_rate = r_AS1, population_id = 4),        # stop rapid population growth in AS
         msprime.PopulationParametersChange(time = T_PULSE2-1, initial_size = N_AS0, growth_rate = 0, population_id = 4), # set AS popsize to AS0
-        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 1, proportion = m_PULSE2), # Neand2 to EAS pulse of introgression
+        msprime.MassMigration(time = T_PULSE2, source = 4, destination = 0, proportion = m_PULSE2), # Neand1 to EAS pulse of introgression
         msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_EU0, growth_rate = 0, population_id = 3),        # set EU popsize at EU0
         msprime.PopulationParametersChange(time = T_EU_AS-1, initial_size = N_AS0, growth_rate = 0, population_id = 4),         # set AS popsize to AS0
         msprime.MassMigration(time = T_EU_AS, source = 4, destination = 3, proportion = 1.0), # AS merges into EU, now termed "B"

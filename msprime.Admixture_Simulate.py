@@ -28,7 +28,9 @@ parser.add_option("-d", "--deni_admixture_propotion", action = "store", type = "
 parser.add_option("--Neand1_sample_size", action = "store", type = "int", dest = "s_n1", default = 2, help="Set Neand1 sample size (haplotypes); default=2")
 parser.add_option("--Neand2_sample_size", action = "store", type = "int", dest = "s_n2", default = 2, help="Set Neand2 sample size (haplotypes); default=2")
 parser.add_option("-t", "--time_N1_N2_split", action = "store", type = "int", dest = "t_n1_n2", default=350, help="Set N1 N2 split time in kya; default=350")
-parser.add_option("-c", "--calls_or_stats", action="store", type = "string", dest = "haplo", default="F4Dstat", help="Pick haplotype calls ('haplo') or 'F4Dstat' or 'vcf' output, or 'debug'; default=F4Dstat")
+parser.add_option("--time_N1_sample", action = "store", type = "int", dest = "t_n1_sample", default=50, help="Set N1 sample time in kya; default=50")
+parser.add_option("--time_N2_sample", action = "store", type = "int", dest = "t_n2_sample", default=50, help="Set N2 sample time in kya; default=50")
+parser.add_option("-c", "--calls_or_stats", action="store", type = "string", dest = "haplo", default="F4Dstat", help="Pick haplotype calls 'haplo' or 'F4Dstat' or 'vcf' output, or 'debug'; default=F4Dstat")
 parser.add_option("-l", "--length_chrom", action="store", type= "float", dest = "length", default=1e6, help="Define length of simulated chromosome; default=1e6")
 parser.add_option("-e", "--european_sample_size", action="store", type="int", dest = "EU_sample_size", default=1006, help="Set EU haploid sample size ; default=1006")
 parser.add_option("-a", "--asian_sample_size", action="store", type="int", dest="AS_sample_size", default=1008, help="Set AS haploid sample size ; default=1008")
@@ -117,6 +119,8 @@ if (options.outdir == "Tenn"):
                         options.n1_admix_prop, options.n2_admix_prop,
                         options.outdir,
                         options.t_n1_n2,
+                        options.t_n1_sample,
+                        options.t_n2_sample,
                         options.haplo,
                         options.length,
                         options.m_AF_B, options.m_B_AF,
@@ -133,6 +137,8 @@ elif (options.outdir == "Sriram"):
                         options.n1_admix_prop, options.n2_admix_prop,
                         options.outdir,
                         options.t_n1_n2,
+                        options.t_n1_sample,
+                        options.t_n2_sample,
                         options.haplo,
                         options.length,
                         options.m_AF_B, options.m_B_AF,
@@ -149,6 +155,8 @@ elif (options.outdir == "SplitPop"):
                         options.n1_admix_prop, options.n2_admix_prop,
                         options.outdir,
                         options.t_n1_n2,
+                        options.t_n1_sample,
+                        options.t_n2_sample,
                         options.haplo,
                         options.length,
                         options.m_AF_B, options.m_B_AF,
