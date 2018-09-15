@@ -70,7 +70,7 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_CH = 7e6 / generation_time # Chimp_Human lineage split
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
-    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 145kya
     T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
     T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     T_AF = 148e3 / generation_time # African population expansion
@@ -224,9 +224,9 @@ def Tenn_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1), # Neand1 to EUR_EAS pulse of introgression
         msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
         msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
         msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
         msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
         msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
         msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
         msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
@@ -329,7 +329,7 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_CH = 7e6 / generation_time # Chimp_Human lineage split (7 MYA)
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split (700 KYA)
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
-    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 145kya
     T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
     T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     #T_N1_N2 = 175e3 / generation_time # Altai/Vindija and Eastern Neandertal popualation split        ### DIFFERENT FROM TENNESSEN
@@ -459,10 +459,10 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.MassMigration(time = T_PULSE1, source = 3, destination = 0, proportion = m_PULSE1), # Neand1 to EUR_EAS pulse of introgression
         msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into Africa at T_B
         msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_N_BN, initial_size = N_N_BN, growth_rate = 0, population_id = 0), # Neand1 has short bottleneck
-        msprime.PopulationParametersChange(time = T_N_BN + 20, initial_size = N_A, growth_rate = 0, population_id = 0), # Neand1 bottleneck ends
         msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
         msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_A, population_id = 0), # set parameters of ancestral Neandertal population
+        msprime.PopulationParametersChange(time = T_N_BN, initial_size = N_N_BN, growth_rate = 0, population_id = 0), # Neand1 has short bottleneck
+        msprime.PopulationParametersChange(time = T_N_BN + 20, initial_size = N_A, growth_rate = 0, population_id = 0), # Neand1 bottleneck ends
         msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
         msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_A, population_id = 0),
         msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
@@ -563,7 +563,7 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     T_MH_CH = 7e6 / generation_time # Chimp_Human lineage split
     T_MH_N = 700e3 / generation_time # Neanderthal / modern human split
     T_DE_N = 500e3 / generation_time # Denisovan / Neandertal split time
-    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 350kya
+    T_N1_N2 = ((t_n1_n2) * 1e3) / generation_time # Altai/Vindija and Eastern Neandertal popualation split, default set to 145kya
     T_N1_SAMPLE = ((t_n1_sample * 1e3) / generation_time)
     T_N2_SAMPLE = ((t_n2_sample * 1e3) / generation_time)
     T_AF = 148e3 / generation_time # African population expansion
@@ -728,9 +728,9 @@ def SplitPop_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
         msprime.MassMigration(time = T_B, source = 3, destination = 2, proportion = 1.0), # Population B merges into African at T_B
         msprime.MassMigration(time = T_B, source = 7, destination = 2, proportion = 1.0), # SplitPop merges into African at T_B
         msprime.MigrationRateChange(time = T_B, rate = 0), # set all migration rates to zero
-        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
         msprime.MassMigration(time = T_N1_N2, source = 1, destination = 0, proportion = 1.0), # N_2 merges with N_1 at T_N1_N2
         msprime.PopulationParametersChange(time = T_N1_N2, initial_size = N_N1, population_id = 0), # set parameters of ancestral Neandertal population
+        msprime.PopulationParametersChange(time = T_AF, initial_size = N_A, population_id = 2), # set parameters of ancestral modern human population
         msprime.MassMigration(time = T_DE_N, source = 6, destination = 0, proportion = 1.0), # DE merges with N1
         msprime.PopulationParametersChange(time = T_DE_N, initial_size = N_N1, population_id = 0),
         msprime.MassMigration(time = T_MH_N, source = 0, destination = 2, proportion = 1.0), # Neandertals merge into modern human lineage at time T_MH_N
