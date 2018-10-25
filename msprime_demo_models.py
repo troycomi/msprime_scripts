@@ -320,8 +320,8 @@ def Sriram_demography(S_N1, S_N2, S_AF, S_EU, S_AS,
     N_B = 10000 # Population size after EUR + ASN join
     N_B_BN = 100 # Population size of EUR_ASN bottleneck (following initial admixture event)
     N_AF = 10000
-    N_EU0 = 1000
-    N_AS0 = 510
+    #N_EU0 = 1000
+    #N_AS0 = 510
     N_CH = 10000
     N_DE = 10000
     # Times are provided in years, so we convert into generations.

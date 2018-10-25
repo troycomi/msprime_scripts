@@ -11,16 +11,16 @@ echo $SLURM_JOB_NAME
 echo $SLURM_ARRAY_TASK_ID
 echo ''
 
-mdl=$( echo Tenn )
-seed=$( cat ../Tenn.chr_list | awk 'BEGIN {OFS="\t"} NR=='$SLURM_ARRAY_TASK_ID' {print $0}' )
+mdl=$( echo Sriram )
+seed=$( cat ../Sriram.chr_list | awk 'BEGIN {OFS="\t"} NR=='$SLURM_ARRAY_TASK_ID' {print $0}' )
 
-n1=$( echo 0.05)
+n1=$( echo 0.1)
 n2=$( echo 0.0)
 
 m_AF_B=$( echo 0.0 )
 m_B_AF=$( echo 0.0 )
 m_AF_EU=$( echo 0.0 )
-m_EU_AF=$( echo 0.0000001 )
+m_EU_AF=$( echo 0.0005 )
 
 eur=$( echo 1006 )   #1006
 asn=$( echo 1008 )   #1008 ; 2040

@@ -21,24 +21,24 @@ number_chrom=500
 
 for n1 in 0.0 0.01 0.02 0.03 0.04 0.05 0.07 0.10 0.15 0.2; do
 #for n1 in $(seq 0.0 0.01 0.2); do
-	if [ $n1 = "0.00" ] ; then 
+	if [ $n1 = "0.00" ] ; then
 		n1=$(echo 0.0)
 	elif [ $n1 = "0.10" ] ; then
 		n1=$(echo 0.1)
 	elif [ $n1 = "0.20" ] ; then
 		n1=$(echo 0.2)
 	fi
-	
+
 	for n2 in 0.00 0.01 0.02 0.03 0.04 0.05 0.07 0.10; do
 	#for n2 in $(seq 0.0 0.01 0.1); do
-		if [ $n2 = "0.00" ] ; then 
+		if [ $n2 = "0.00" ] ; then
 			n2=$(echo 0.0)
 		elif [ $n2 = "0.10" ] ; then
 			n2=$(echo 0.1)
 		elif [ $n2 = "0.20" ] ; then
 			n2=$(echo 0.2)
 		fi
-	
+
 		file=$(echo "$mdl"_nonAfr_ALL_n1_"$n1"_n2_"$n2".bed.merged.5_to_10Mb)
 		if [ -e $dir/$mdl/$file.gz ]; then
 			echo ''
@@ -53,7 +53,8 @@ for n1 in 0.0 0.01 0.02 0.03 0.04 0.05 0.07 0.10 0.15 0.2; do
 				$pop_size \
 				$mdl \
 				$thrhld \
-				$number_chrom \
+#				$number_chrom \
+				$dir/$mdl/$mdl.chr_list
 				> $dir/$mdl/$file.prop_blw_thrhld
 			rm $dir/$mdl/$file
 		elif [ ! -e $dir/$mdl/$file.gz ]; then

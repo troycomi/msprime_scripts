@@ -4,14 +4,14 @@ sample.1_to_15Mb = args[1]
 pop.size = as.numeric(args[2])
 mdl = args[3]
 thrhld = as.numeric(args[4])
-n_chr = as.numeric(args[5])
+chr_list = args[5]
 # Vernot 2015: thrhld = 0.000316
 # Sankararaman 2014: thrhld = 0.000113
 
 suppressMessages(library("data.table"))
 suppressMessages(library("dplyr"))
 
-toPct_Int.1_to_15Mb.fn = function(sampled.data.1_to_15Mb, pop.size, Mdl, n_chr){
+toPct_Int.1_to_15Mb.fn = function(sampled.data.1_to_15Mb, pop.size, Mdl, chr_list){
 	 Pct_Intr.format = sampled.data.1_to_15Mb %>% 
 		setnames(c('sim.tsk','hapstrt','hapend', 'sample_ID', 'Winsize', 'n1', 'n2')) %>%
 		mutate(Mdl=Mdl) %>%
@@ -24,7 +24,7 @@ toPct_Int.1_to_15Mb.fn = function(sampled.data.1_to_15Mb, pop.size, Mdl, n_chr){
 	
 	Pct_Intr.format <- as.data.table(Pct_Intr.format)	
 	setkey(Pct_Intr.format, sim.tsk, Winsize, Mdl)
-  	Pct_Intr.format = Pct_Intr.format[CJ(rep(1:n_chr), unique(Winsize), unique(Mdl))]
+  	Pct_Intr.format = Pct_Intr.format[CJ(dt.chr_list$V1, unique(Winsize), unique(Mdl))] # <<<<--- ERROR Here: need to come up with a new way to check all chr are present
   	Pct_Intr.format[is.na(Pct_Int), Pct_Int:=0]
 
 	Pct_Intr.format$n1 <- sampled.data.1_to_15Mb$n1
@@ -83,11 +83,14 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 	}
 }
 
-
+#######################
+#######################
 
 dt.sample.1_to_15Mb = fread(sample.1_to_15Mb, header=FALSE, verbose=FALSE, showProgress=FALSE)
+dt.chr_list = fread(chr_list, header=FALSE, verbose=FALSE, showProgress = FALSE)
+n_chr = nrow(dt.chr_list)
 
-dt.sample.1_to_15Mb.PctInt = toPct_Int.1_to_15Mb.fn(dt.sample.1_to_15Mb, pop.size, mdl, n_chr)
+dt.sample.1_to_15Mb.PctInt = toPct_Int.1_to_15Mb.fn(dt.sample.1_to_15Mb, pop.size, mdl, dt.chr_list)
 
 write('to PctInt complete', stderr())
 
