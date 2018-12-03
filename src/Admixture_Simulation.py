@@ -1,23 +1,16 @@
 from __future__ import print_function
 import sys
-import msprime
 import math
-import numpy as np
 import pybedtools
-import random
-import scipy
-import subprocess
-import glob
 import collections
 import gzip
 import os.path
-from scipy import spatial
 from AdmixtureOptionParser import admixture_option_parser
 import msprime_demo_models
 
 
 parser = admixture_option_parser()
-(options, args) = parser.parse_args()
+(options, _) = parser.parse_args()
 
 
 class introgression_object(object):
