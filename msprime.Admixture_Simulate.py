@@ -179,6 +179,42 @@ elif (options.outdir == "test"):
                         options.m_AF_EU, options.m_EU_AF,
                         options.m_EU_AS, options.m_AS_EU)
 
+elif (options.outdir == "Tenn_nomod"):
+        simulation = msprime_demo_models.Tenn_demography(
+                        options.s_n1, options.s_n2,
+                        options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
+                        3,
+                        options.seed,
+                        options.n1_admix_prop, options.n2_admix_prop,
+                        options.outdir,
+                        options.t_n1_n2,
+                        options.t_n1_sample,
+                        options.t_n2_sample,
+                        options.haplo,
+                        options.length,
+                        options.m_AF_B, options.m_B_AF,
+                        options.m_AF_AS, options.m_AS_AF,
+                        options.m_AF_EU, options.m_EU_AF,
+                        options.m_EU_AS, options.m_AS_EU)
+
+elif (options.outdir == "Tenn_pulsed"):
+        simulation = msprime_demo_models.Tenn_demography(
+                        options.s_n1, options.s_n2,
+                        options.AF_sample_size, options.EU_sample_size, options.AS_sample_size,
+                        4,
+                        options.seed,
+                        options.n1_admix_prop, options.n2_admix_prop,
+                        options.outdir,
+                        options.t_n1_n2,
+                        options.t_n1_sample,
+                        options.t_n2_sample,
+                        options.haplo,
+                        options.length,
+                        options.m_AF_B, options.m_B_AF,
+                        options.m_AF_AS, options.m_AS_AF,
+                        options.m_AF_EU, options.m_EU_AF,
+                        options.m_EU_AS, options.m_AS_EU)
+
 ## Define the sample indices
 EU_count = options.EU_sample_size
 AS_count = options.AS_sample_size
@@ -208,7 +244,6 @@ elif (options.pop == "modHum"):
 ###### GET HAPLOTYPES FROM SIMULATED TREES #######
 
 if (options.haplo == "haplo"):
-
         # Create a .bed file to write to for the simulation
         haplo_outfile = sys.stdout
         #haplo_outfile = gzip.open( options.outdir+'_'+options.pop+'_'+str(options.seed)+'_n1_'+str(options.n1_admix_prop)+'_n2_'+str(options.n2_admix_prop)+'.bed.merged.gz' , 'wb' )
