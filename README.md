@@ -6,7 +6,7 @@ relevant for evaluating admixture and back migration events.
 
 ## Installation
 All required packages are listed in environment.txt.  
-To create a conda environment for the project on Della, first activate anaconda3
+To create a conda environment for the project on Della, first activate anaconda3:
 ```
 module load anaconda3
 ```

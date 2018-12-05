@@ -98,7 +98,7 @@ if __name__ == "__main__":
     AF_count = options.AF_sample_size
     N_samples = range(0, S_N1+S_N2)        # range(0,4) --> 0,1,2,3
     AF_samples = range(S_N1+S_N2, S_N1+S_N2+AF_count)   # range(4,6) --> 4,5
-    non_trgt = len(N_samples + AF_samples)      # 6
+    non_trgt = len(N_samples) + len(AF_samples)      # 6
     nonAfr_samples = range(non_trgt, (EU_count + AS_count + non_trgt))
     EU_samples = range(non_trgt, (EU_count + non_trgt))
     AS_samples = range((EU_count + non_trgt), (EU_count+AS_count+non_trgt))
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         #  and convert this to a BED file using pybedtools
         # Then perform the sort() and merge() functions in python
         haplo_entry_string = ''.join(haplo_entry_list)
-        pybedtools.set_tempdir('/scratch/tmp/abwolf/')
+        pybedtools.set_tempdir('/scratch/')
         BEDFILE = pybedtools.BedTool(haplo_entry_string, from_string=True)
         BEDFILE_SORTED_MERGED = pybedtools.BedTool.sort(BEDFILE).merge()
 
