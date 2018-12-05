@@ -150,7 +150,6 @@ if __name__ == "__main__":
                 # Since our Neanderthal sample is only two,
                 #  we can easily exclude events that just concern Neanderthals
                 if record.population <= 1:
-                    print("record:", record)
                     node_map[record.node].append((record.left, record.right))
 
             for neanderthal_mrca, segments in node_map.items():
