@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 import math
 import pybedtools
@@ -189,7 +188,7 @@ if __name__ == "__main__":
             new_bed_line = str(bed_line).strip() + '\t' + str(options.seed)
             new_bed_line = new_bed_line.split('\t')
             new_bed_line[0], new_bed_line[3] = new_bed_line[3], new_bed_line[0]
-            haplo_outfile.write('\t'.join(new_bed_line)+'\n')
+            haplo_outfile.write(str.encode('\t'.join(new_bed_line)+'\n'))
 
         pybedtools.cleanup(verbose=True)
         haplo_outfile.close()

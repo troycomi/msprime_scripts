@@ -12,7 +12,7 @@ module load anaconda3
 ```
 The conda environment is then created with:
 ```
-conda env create --file environment.txt
+conda create -n msprime_scripts --file environment.txt
 ```
 
 ## Usage

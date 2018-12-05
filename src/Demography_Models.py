@@ -410,8 +410,11 @@ class Base_demography(object):
 
 
 class Tenn_demography(Base_demography):
-    """No change from base as base was made from Tenn"""
-    pass
+    """Small change from base as base was made from Tenn"""
+    
+    def get_debug_configuration(self):
+        return [pop.get_debug_configuration(includeRate=True)
+                for pop in self.populations]
 
 
 class Sriram_demography(Base_demography):
@@ -435,6 +438,8 @@ class Sriram_demography(Base_demography):
         self.N_CH = 10000
         self.N_DE = 10000
         self.N_EU = 10000
+        self.N_EU0 = 1000
+        self.N_AS0 = 510
         self.N_AS = 10000
 
         # Neandertal bottleneck            ### DIFFERENT FROM TENNESSEN
@@ -480,7 +485,7 @@ class Sriram_demography(Base_demography):
                 proportion=1.0)
         ]
 
-        ids['B'] = ids['AS']
+        ids['B'] = ids['EU']
 
         self.events += [
             # set all migration rates to zero
