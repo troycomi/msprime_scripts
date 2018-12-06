@@ -83,8 +83,7 @@ class Base_demography(object):
 
     def set_constants(self):
         self.generation_time = 25  # years/generation
-        # simulate 1Mb chromosomes for faster F4 and D calculation
-        self.length = 1e6
+        self.length = self.options.length
         # 2e-8 original from Rajiv, not sure where it is from.
         self.recombination_rate = 1e-8
 
@@ -147,14 +146,14 @@ class Base_demography(object):
             # Altai/Vindija lineage effective population size
             Population(name='N1',
                        population_size=self.N_N1,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=self.S_N1,
                        generations=50e3 / self.generation_time),
 
             # Eastern Neandertal effective population size
             Population(name='N2',
                        population_size=self.N_N2,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=self.S_N2,
                        generations=50e3 / self.generation_time),
 
@@ -178,13 +177,13 @@ class Base_demography(object):
 
             Population(name='CH',
                        population_size=self.N_CH,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=2,
                        generations=0),
 
             Population(name='DE',
                        population_size=self.N_DE,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=2,
                        generations=50e3 / self.generation_time),
 
@@ -462,7 +461,7 @@ class Sriram_demography(Base_demography):
 
         # only change from tennison is all growth rates are 0
         for pop in self.populations:
-            pop.growth_rate = 0
+            pop.rate = 0.0
 
     def set_demographic_events(self):
         ids = self.get_population_map()
@@ -619,13 +618,13 @@ class SplitPop_demography(Base_demography):
         self.populations = [
             Population(name='N1',
                        population_size=self.N_N1,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=self.S_N1,
                        generations=50e3 / self.generation_time),
 
             Population(name='N2',
                        population_size=self.N_N2,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=self.S_N2,
                        generations=50e3 / self.generation_time),
 
@@ -649,19 +648,19 @@ class SplitPop_demography(Base_demography):
 
             Population(name='CH',
                        population_size=self.N_CH,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=2,
                        generations=0),
 
             Population(name='DE',
                        population_size=self.N_DE,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=2,
                        generations=50e3 / self.generation_time),
 
             Population(name='SP',
                        population_size=self.N_SP,
-                       growth_rate=0,
+                       growth_rate=0.0,
                        samples=2,
                        generations=50e3 / self.generation_time)
 
