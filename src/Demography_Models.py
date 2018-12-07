@@ -50,12 +50,11 @@ class Base_demography(object):
         self.m_PULSE1 = self.options.n1_admix_prop
         self.m_PULSE2 = self.options.n2_admix_prop
         self.set_constants()
-
-    def simulate(self):
         self.set_populations()
         self.set_migrations()
         self.set_demographic_events()
 
+    def simulate(self):
         if(self.options.haplo == "debug"):
             msprime.DemographyDebugger(
                 Ne=self.N_A,
