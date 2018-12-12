@@ -60,23 +60,23 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
 
 
 def get_filename(options, extension):
-    return "{}_{}_{}_n1_{}_n2_{}".format(
-        options.outdir,
-        options.pop,
-        options.seed,
-        options.n1_admix_prop,
-        options.n2_admix_prop) \
+    return "{outdir}_{pop}_{seed}_n1_{n1}_n2_{n2}".format(
+        outdir=options.outdir,
+        pop=options.pop,
+        seed=options.seed,
+        n1=options.n1_admix_prop,
+        n2=options.n2_admix_prop) \
         + extension
 
 
 def get_gz_filename(options, base, include_ext=True):
-    name = "{}.{}.n1_{}_n2_{}_t_{}_{}".format(
-        options.outdir,
-        base,
-        options.n1_admix_prop,
-        options.n2_admix_prop,
-        options.t_n1_n2,
-        options.seed)
+    name = "{outdir}.{base}.n1_{n1}_n2_{n2}_t_{tn1n2}_{seed}".format(
+        outdir=options.outdir,
+        base=base,
+        n1=options.n1_admix_prop,
+        n2=options.n2_admix_prop,
+        tn1n2=options.t_n1_n2,
+        seed=options.seed)
     if include_ext:
         name += ".gz"
     return name
@@ -85,10 +85,6 @@ def get_gz_filename(options, base, include_ext=True):
 if __name__ == "__main__":
     parser = admixture_option_parser()
     options = parser.parse_args()
-
-    print("Options")
-    for key, item in options.__dict__.items():
-        print("{}: {}".format(key, item))
 
     S_N1 = 2
     S_N2 = 2
@@ -102,7 +98,14 @@ if __name__ == "__main__":
     model = models.get(options.outdir, None)
     if model is None:
         print("unsupported model: {}".format(options.outdir))
+        print("implemented models are:")
+        for m in models.keys():
+            print("\t" + m)
         sys.exit(1)
+
+    print("Options")
+    for key, item in options.__dict__.items():
+        print("{}: {}".format(key, item))
 
     simulation = model.simulate()
     long_names = model.get_long_name_map()
@@ -121,26 +124,40 @@ if __name__ == "__main__":
     elif (options.pop == "nonAfr"):
         human_samples = range(non_trgt, non_af + non_trgt)
 
-    # GET HAPLOTYPES FROM SIMULATED TREES #######
-    if (options.haplo == "haplo"):
+    # GET HAPLOTYPES AND VCF FROM SIMULATED TREES #######
+    if (options.haplo == "haplo" or options.haplo == "vcf"):
         # Create a .bed file to write to for the simulation
         haplo_outfile = gzip.open(
             get_filename(options, '.bed.merged.gz'), 'wb')
         haplo_entry_list = []
+        vcf_outfile = open(get_filename(options, '.vcf'), 'w')
 
         for t, ts in enumerate(simulation):
+            # If a population file does not exist yet, write one
+            if os.path.isfile(options.outdir+'.popfile'):
+                print('popfile already exists', file=sys.stderr)
+            else:
+                # Tenn.popfile.gz
+                pop_outfile = open(options.outdir+'.popfile', 'w')
+                # write header to pop_outfile
+                pop_outfile.write('samp\tpop\tsuper_pop\n')
+
+                # For each individual in Tree1
+                for i in range(ts.get_sample_size()):
+                    if i % 2 == 0:
+                        pop_outfile.write(
+                            'msp_{0}\t{1}\t{1}\n'.format(
+                                i//2,
+                                long_names[ts.get_population(i)]))
+
+                pop_outfile.close()
+            ts.write_vcf(vcf_outfile, 2)
 
             # Defines "node_map" as an empty dictionary of lists :
             node_map = collections.defaultdict(list)
 
-            # for a single record from all the records of a given tree ts
-            # We are interested in coalescence events that occured
-            #  in the Neandertal population
+            # fill node_map with records from tree
             for record in ts.records():
-
-                # If the population of the tree is Neand (0 or 1)
-                # Since our Neanderthal sample is only two,
-                #  we can easily exclude events that just concern Neanderthals
                 if record.population <= 1:
                     node_map[record.node].append((record.left, record.right))
 
@@ -156,16 +173,27 @@ if __name__ == "__main__":
                     for s in samples:
                         if s in human_samples and \
                                 math.ceil(left) < math.ceil(right):
-                            haplo_entry = str(s)\
-                                    + '\t' + str(int(math.ceil(left)))\
-                                    + '\t' + str(int(math.ceil(right)))\
-                                    + '\t' + str(s)
-                            haplo_entry_list.append(haplo_entry + '\n')
+                            haplo_entry_list.append(
+                                '{0}\t{1:.0f}\t{2:.0f}\t{0}'.format(
+                                    s,
+                                    math.ceil(left),
+                                    math.ceil(right)))
+
+        vcf_outfile.close()
+        # have to gzip seperately
+        with open(get_filename(options, '.vcf'), 'r') as f_in,\
+                gzip.open(get_filename(options, '.vcf.gz'), 'wb') as f_out:
+
+            for lin in f_in.readlines():
+                f_out.write(str.encode(lin))
+
+        os.remove(get_filename(options, '.vcf'))
+
         # NOTE: After printing to a bed file, still need to sort and merge
         # Join together the list of introgressed haplotypes into a string,
         #  and convert this to a BED file using pybedtools
         # Then perform the sort() and merge() functions in python
-        haplo_entry_string = ''.join(haplo_entry_list)
+        haplo_entry_string = '\n'.join(haplo_entry_list)
         pybedtools.set_tempdir('/scratch/')
         BEDFILE = pybedtools.BedTool(haplo_entry_string, from_string=True)
         BEDFILE_SORTED_MERGED = pybedtools.BedTool.sort(BEDFILE).merge()
@@ -174,12 +202,14 @@ if __name__ == "__main__":
         # reorder so that the columns are: chr, strt, end, ind
         # write to haplo_outfile in gzip
         for bed_line in BEDFILE_SORTED_MERGED:
-            new_bed_line = str(bed_line).strip() + '\t' + str(options.seed)
+            new_bed_line = '{}\t{}'.format(
+                str(bed_line).strip(),
+                options.seed)
             new_bed_line = new_bed_line.split('\t')
             new_bed_line[0], new_bed_line[3] = new_bed_line[3], new_bed_line[0]
             haplo_outfile.write(str.encode('\t'.join(new_bed_line)+'\n'))
 
-        pybedtools.cleanup(verbose=True)
+        pybedtools.cleanup()
         haplo_outfile.close()
 
 #    GET EIGENSTRATGENO FILES AND SNP FILES    #########
@@ -195,12 +225,13 @@ if __name__ == "__main__":
                 get_gz_filename(options, 'ind'),
                 'wb') as ind_outfile,\
             gzip.open(
-                'parfile.F4stat.{}.n1_{}_n2_{}_t_{}_{}.gz'.format(
-                    options.outdir,
-                    options.n1_admix_prop,
-                    options.n2_admix_prop,
-                    options.t_n1_n2,
-                    options.seed
+                'parfile.F4stat.{outdir}.n1_{n1}_n2_{n2}_t_{tn1n2}_{seed}.gz'
+                .format(
+                    outdir=options.outdir,
+                    n1=options.n1_admix_prop,
+                    n2=options.n2_admix_prop,
+                    tn1n2=options.t_n1_n2,
+                    seed=options.seed
                 ), 'wb') as parF4_outfile:
 
             rs_num = 0
@@ -230,11 +261,11 @@ if __name__ == "__main__":
                 # write snp_allele info to .snp file
                 snp_outfile.write(
                     str.encode(
-                        'rs{}\t{}\t{}\t{}\tA\tT\n'.format(
-                            rs_num,
-                            chr_num,
-                            variant.position / options.length,
-                            int(variant.position))))
+                        'rs{rs}\t{chr}\t{loc}\t{pos}\tA\tT\n'.format(
+                            rs=rs_num,
+                            chr=chr_num,
+                            loc=variant.position / options.length,
+                            pos=int(variant.position))))
 
             parF4_outfile.write(
                 str.encode('genotypename: {}\n'.format(
@@ -250,39 +281,3 @@ if __name__ == "__main__":
 
             parF4_outfile.write(
                 str.encode('popfilename: sim.popfile_F4stat'+'\n'))
-
-
-#    WRITE VCF FILE FORMAT FOR S* CALCULATIONS , ALONG WITH POPULATION FILE
-    elif (options.haplo == "vcf"):
-        vcf_outfile = open(get_filename(options, '.vcf'), 'w')
-        for t, tree_sequence in enumerate(simulation):
-            # If a population file does not exist yet, write one
-            if os.path.isfile(options.outdir+'.popfile'):
-                print('popfile already exists', file=sys.stderr)
-            else:
-                # Tenn.popfile.gz
-                pop_outfile = open(options.outdir+'.popfile', 'w')
-                # write header to pop_outfile
-                pop_outfile.write('samp'+'\t'+'pop'+'\t'+'super_pop'+'\n')
-
-                # For each individual in Tree1
-                for i in range(tree_sequence.get_sample_size()):
-                    if i % 2 == 0:
-                        pop_outfile.write(
-                            'msp_{0}\t{1}\t{1}\n'.format(
-                                i//2,
-                                long_names[tree_sequence.get_population(i)]))
-
-                pop_outfile.close()
-            tree_sequence.write_vcf(vcf_outfile, 2)
-
-        vcf_outfile.close()
-
-        # have to gzip seperately
-        with open(get_filename(options, '.vcf'), 'r') as f_in,\
-                gzip.open(get_filename(options, '.vcf.gz'), 'wb') as f_out:
-
-            for lin in f_in.readlines():
-                f_out.write(str.encode(lin))
-
-        os.remove(get_filename(options, '.vcf'))
