@@ -8,13 +8,6 @@ from AdmixtureOptionParser import admixture_option_parser
 import Demography_Models
 
 
-class introgression_object(object):
-    def __init__(self, mutations, haplotypes, intervals):
-        self.mutations = mutations
-        self.haplotypes = haplotypes
-        self.intervals = intervals
-
-
 def introgressed_samples_fn(ts, neanderthal_mrca,
                             neanderthal_samples, segments):
     # Define the samples that carry introgressed segments?
@@ -66,78 +59,78 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
         yield start, right, last_human_leaves
 
 
-# SIMULATION RUNS ############
+def get_filename(options, extension):
+    return "{}_{}_{}_n1_{}_n2_{}".format(
+        options.outdir,
+        options.pop,
+        options.seed,
+        options.n1_admix_prop,
+        options.n2_admix_prop) \
+        + extension
+
+
+def get_gz_filename(options, base, include_ext=True):
+    name = "{}.{}.n1_{}_n2_{}_t_{}_{}".format(
+        options.outdir,
+        base,
+        options.n1_admix_prop,
+        options.n2_admix_prop,
+        options.t_n1_n2,
+        options.seed)
+    if include_ext:
+        name += ".gz"
+    return name
+
+
 if __name__ == "__main__":
     parser = admixture_option_parser()
     options = parser.parse_args()
 
-    print("Model: ", options.outdir, "Seed: ", options.seed, "Neand_Pulse1: ",
-          options.n1_admix_prop, "Neand_Pulse2: ", options.n2_admix_prop,
-          "Length: ", options.length, file=sys.stderr, sep='\t')
+    print("Options")
+    for key, item in options.__dict__.items():
+        print("{}: {}".format(key, item))
 
     S_N1 = 2
     S_N2 = 2
 
-    if (options.outdir == "Tenn"):
-        simulation = Demography_Models.Tenn_demography(
-                S_N1, S_N2, options).simulate()
+    models = {
+        "Tenn": Demography_Models.Tenn_demography(S_N1, S_N2, options),
+        "Sriram": Demography_Models.Sriram_demography(S_N1, S_N2, options),
+        "SplitPop": Demography_Models.SplitPop_demography(S_N1, S_N2, options),
+    }
 
-    elif (options.outdir == "Sriram"):
-        simulation = Demography_Models.Sriram_demography(
-                S_N1, S_N2, options).simulate()
+    model = models.get(options.outdir, None)
+    if model is None:
+        print("unsupported model: {}".format(options.outdir))
+        sys.exit(1)
 
-    elif (options.outdir == "SplitPop"):
-        simulation = Demography_Models.SplitPop_demography(
-                S_N1, S_N2, options).simulate()
+    simulation = model.simulate()
+    long_names = model.get_long_name_map()
 
-
-    # Define the sample indices
-    EU_count = options.EU_sample_size
-    AS_count = options.AS_sample_size
-    AF_count = options.AF_sample_size
-    N_samples = range(0, S_N1+S_N2)        # range(0,4) --> 0,1,2,3
-    AF_samples = range(S_N1+S_N2, S_N1+S_N2+AF_count)   # range(4,6) --> 4,5
-    non_trgt = len(N_samples) + len(AF_samples)      # 6
-    nonAfr_samples = range(non_trgt, (EU_count + AS_count + non_trgt))
-    EU_samples = range(non_trgt, (EU_count + non_trgt))
-    AS_samples = range((EU_count + non_trgt), (EU_count+AS_count+non_trgt))
-    Chimp_samples = range((EU_count+AS_count+non_trgt),
-                          (EU_count+AS_count+non_trgt)+2)
-    Deni_samples = range((EU_count+AS_count+non_trgt) + 2,
-                         (EU_count+AS_count+non_trgt) + 2 + 2)
+    # combine the sample indices
+    non_trgt = S_N1 + S_N2 + options.AF_sample_size
+    non_af = options.EU_sample_size + options.AS_sample_size
 
     if (options.pop == "EAS"):
-        human_samples = AS_samples
-    elif (options.pop == "EUR"):
-        human_samples = EU_samples
-    elif (options.pop == "nonAfr"):
-        human_samples = nonAfr_samples
+        human_samples = range(options.EU_sample_size + non_trgt,
+                              non_af + non_trgt)
 
+    elif (options.pop == "EUR"):
+        human_samples = range(non_trgt, options.EU_sample_size + non_trgt)
+
+    elif (options.pop == "nonAfr"):
+        human_samples = range(non_trgt, non_af + non_trgt)
 
     # GET HAPLOTYPES FROM SIMULATED TREES #######
-
     if (options.haplo == "haplo"):
         # Create a .bed file to write to for the simulation
-        haplo_outfile = gzip.open(options.outdir + '_' + options.pop + '_' +
-                                  str(options.seed) + '_n1_' +
-                                  str(options.n1_admix_prop) + '_n2_' +
-                                  str(options.n2_admix_prop) +
-                                  '.bed.merged.gz', 'wb')
+        haplo_outfile = gzip.open(
+            get_filename(options, '.bed.merged.gz'), 'wb')
         haplo_entry_list = []
-        # FOR EACH SIMULATED CHROMOSOME,
-        #  PRINT ALL THE INTROGRESSED HAPLOTYPES BELONGING TO
-        #   THE SPECIFIED NON-AFR POPULATION IN BED FORMAT
-        # t is the tree ID, ts is a given tree from the simulation
+
         for t, ts in enumerate(simulation):
 
-            # 'collections' = pythons high-performance container types,
-            # 'defaultdict()' is one such container type
-            # defaultdict() = dict subclass that calls a factory
-            # function to supply missing values
-            # Using 'list' as the default_factory, it is easy to
-            # group a sequence of key-value pairs into a dictionary of lists:
             # Defines "node_map" as an empty dictionary of lists :
-            # [('n1', [0, 10]), ('n2', [11, 14]), ('n3', [15, 20])]
             node_map = collections.defaultdict(list)
 
             # for a single record from all the records of a given tree ts
@@ -152,16 +145,12 @@ if __name__ == "__main__":
                     node_map[record.node].append((record.left, record.right))
 
             for neanderthal_mrca, segments in node_map.items():
-                # >>> node_map.items()
-                # [('n1', [0, 10]), ('n2', [11, 14]), ('n3', [15, 20])]
-                # where the node is the neanderthal_mrca (e.g. 'n1'),
-                #  and the segments is the tree interval (e.g. [0,10])
-
                 # Run the introgressed_samples function,
                 # using the given tree, the defined Neandertal_mrca/node,
                 # the defined tree interval/'segments', and the Neand_samples
                 iterator = introgressed_samples_fn(ts, neanderthal_mrca,
-                                                   N_samples, segments)
+                                                   range(0, S_N1 + S_N2),
+                                                   segments)
 
                 for left, right, samples in iterator:
                     for s in samples:
@@ -196,156 +185,104 @@ if __name__ == "__main__":
 #    GET EIGENSTRATGENO FILES AND SNP FILES    #########
 
     elif (options.haplo == "F4Dstat"):
-            outdir = options.outdir
-            n1_admix_prop = options.n1_admix_prop
-            n2_admix_prop = options.n2_admix_prop
-            t_n1_n2 = options.t_n1_n2
-            length = options.length
-            seed = options.seed
+        with gzip.open(
+                get_gz_filename(options, 'eigenstratgeno'),
+                'wb') as geno_outfile,\
+            gzip.open(
+                get_gz_filename(options, 'snp'),
+                'wb') as snp_outfile,\
+            gzip.open(
+                get_gz_filename(options, 'ind'),
+                'wb') as ind_outfile,\
+            gzip.open(
+                'parfile.F4stat.{}.n1_{}_n2_{}_t_{}_{}.gz'.format(
+                    options.outdir,
+                    options.n1_admix_prop,
+                    options.n2_admix_prop,
+                    options.t_n1_n2,
+                    options.seed
+                ), 'wb') as parF4_outfile:
 
-            #  sim.eigenstratgeno.n1_0.01_n2_0.05_200
-            geno_outfile = gzip.open(outdir + '.eigenstratgeno.n1_' +
-                                     str(n1_admix_prop) + '_n2_' +
-                                     str(n2_admix_prop) + '_t_' +
-                                     str(t_n1_n2) + '_' + str(seed) +
-                                     '.gz', 'wb')
-            snp_outfile = gzip.open(outdir + '.snp.n1_' +
-                                    str(n1_admix_prop) + '_n2_' +
-                                    str(n2_admix_prop) + '_t_' +
-                                    str(t_n1_n2) + '_' + str(seed) +
-                                    '.gz', 'wb')
-            ind_outfile = gzip.open(outdir + '.ind.n1_' + str(n1_admix_prop)
-                                    + '_n2_' + str(n2_admix_prop) +
-                                    '_t_' + str(t_n1_n2) + '_' +
-                                    str(seed) + '.gz', 'wb')
             rs_num = 0
 
             # enumerate creates a list of tuples, where each chrom
             # is a tuple with an index and the tree
             # e.g. [(1,Tree1), (2,Tree2)...]
-            for t, tree_sequence in enumerate(simulation): 
+            for t, tree_sequence in enumerate(simulation):
                 #  WRITE THE .IND FILE  ###
                 # Write .ind file based on output of Tree1
-                if t<1:
+                if t < 1:
                     # Get the sample size from the tree
-                    for i in range(tree_sequence.get_sample_size()):        
-                        # For each individual in Tree1,
-                        # get the corresponding population
-                        if tree_sequence.get_population(i) == 0:
-                            pop = 'Neand1'
-                        elif tree_sequence.get_population(i) == 1:
-                            pop = 'Neand2'
-                        elif tree_sequence.get_population(i) == 2:
-                            pop = 'AFR'
-                        elif tree_sequence.get_population(i) == 3:
-                            pop = 'EUR'
-                        elif tree_sequence.get_population(i) == 4:
-                            pop = 'ASN'
-                        elif tree_sequence.get_population(i) == 5:
-                            pop = 'Chimp'
-                        elif tree_sequence.get_population(i) == 6:
-                            pop = 'Deni'
-                        elif tree_sequence.get_population(i) == 7:
-                            pop = 'Split'
+                    for i in range(tree_sequence.get_sample_size()):
+                        pop = long_names[tree_sequence.get_population(i)]
 
-                        # Write the sample entry using the population from Tree1
-                        ind_entry = 'Sample_' + str(i) + '\t' + 'U' + '\t' + pop
-                        ind_outfile.write(ind_entry+'\n')
+                        ind_outfile.write(
+                            str.encode('Sample_{}\tU\t{}\n'.format(i, pop)))
+
             #  WRITE THE .EIGENSTRATGENO AND .SNP FILES  ###
             chr_num = t+1
             for variant in tree_sequence.variants(as_bytes=True):
                 rs_num += 1
+
                 # write genotypes to .eigenstratgeno file
-                geno_outfile.write(variant.genotypes+'\n')
-                line = str('rs' + str(rs_num) + '\t' + str(chr_num) +
-                           '\t' + str(variant.position/length) + '\t' +
-                           str(int(variant.position)) + '\t' + 'A' +
-                           '\t' + 'T' + '\n')
+                geno_outfile.write(variant.genotypes+b'\n')
+
                 # write snp_allele info to .snp file
-                snp_outfile.write(line)
+                snp_outfile.write(
+                    str.encode(
+                        'rs{}\t{}\t{}\t{}\tA\tT\n'.format(
+                            rs_num,
+                            chr_num,
+                            variant.position / options.length,
+                            int(variant.position))))
 
-            parF4_outfile = gzip.open('parfile.F4stat.' + outdir + '.n1_'
-                                      + str(n1_admix_prop) + '_n2_' +
-                                      str(n2_admix_prop) + '_t_' +
-                                      str(t_n1_n2) + '_' + str(seed) +
-                                      '.gz', 'wb')
-            parF4_outfile.write('genotypename: ' + outdir +
-                                '.eigenstratgeno.n1_' + str(n1_admix_prop) +
-                                '_n2_' + str(n2_admix_prop) + '_t_' +
-                                str(t_n1_n2) + '_' + str(seed) + '\n')
-            parF4_outfile.write('snpname: ' + outdir + '.snp.n1_' +
-                                str(n1_admix_prop) + '_n2_' +
-                                str(n2_admix_prop) + '_t_' +
-                                str(t_n1_n2) + '_' +
-                                str(seed) + '\n')
-            parF4_outfile.write('indivname: ' + outdir + '.ind.n1_' +
-                                str(n1_admix_prop) + '_n2_' +
-                                str(n2_admix_prop) + '_t_' +
-                                str(t_n1_n2) + '_' + str(seed) + '\n')
-            parF4_outfile.write('popfilename: sim.popfile_F4stat'+'\n')
+            parF4_outfile.write(
+                str.encode('genotypename: {}\n'.format(
+                    get_gz_filename(options, 'eigenstratgeno', False))))
 
-            geno_outfile.close()
-            snp_outfile.close()
-            ind_outfile.close()
-            parF4_outfile.close()
+            parF4_outfile.write(
+                str.encode('snpname: {}\n'.format(
+                    get_gz_filename(options, 'snp', False))))
+
+            parF4_outfile.write(
+                str.encode('indivname: {}\n'.format(
+                    get_gz_filename(options, 'ind', False))))
+
+            parF4_outfile.write(
+                str.encode('popfilename: sim.popfile_F4stat'+'\n'))
 
 
 #    WRITE VCF FILE FORMAT FOR S* CALCULATIONS , ALONG WITH POPULATION FILE
-
     elif (options.haplo == "vcf"):
-            outdir = options.outdir
-            n1_admix_prop = options.n1_admix_prop
-            n2_admix_prop = options.n2_admix_prop
-            pop = options.pop
-            t_n1_n2 = options.t_n1_n2
-            length = options.length
-            seed = options.seed
+        vcf_outfile = open(get_filename(options, '.vcf'), 'w')
+        for t, tree_sequence in enumerate(simulation):
+            # If a population file does not exist yet, write one
+            if os.path.isfile(options.outdir+'.popfile'):
+                print('popfile already exists', file=sys.stderr)
+            else:
+                # Tenn.popfile.gz
+                pop_outfile = open(options.outdir+'.popfile', 'w')
+                # write header to pop_outfile
+                pop_outfile.write('samp'+'\t'+'pop'+'\t'+'super_pop'+'\n')
 
-            for t, tree_sequence in enumerate(simulation):
-                # If a population file does not exist yet, write one
-                if os.path.isfile(outdir+'.popfile'):
-                    print('popfile already exists', file=sys.stderr)
-                else:
-                    # Tenn.popfile.gz
-                    pop_outfile = open(outdir+'.popfile', 'w')
-                    # write header to pop_outfile
-                    pop_outfile.write('samp'+'\t'+'pop'+'\t'+'super_pop'+'\n')
+                # For each individual in Tree1
+                for i in range(tree_sequence.get_sample_size()):
+                    if i % 2 == 0:
+                        pop_outfile.write(
+                            'msp_{0}\t{1}\t{1}\n'.format(
+                                i//2,
+                                long_names[tree_sequence.get_population(i)]))
 
-                    # For each individual in Tree1
-                    for i in range(tree_sequence.get_sample_size()):
-                        # get the corresponding population
-                        if tree_sequence.get_population(i) == 0:
-                            s_pop = 'Neand1'
-                        elif tree_sequence.get_population(i) == 1:
-                            s_pop = 'Neand2'
-                        elif tree_sequence.get_population(i) == 2:
-                            s_pop = 'AFR'
-                        elif tree_sequence.get_population(i) == 3:
-                            s_pop = 'EUR'
-                        elif tree_sequence.get_population(i) == 4:
-                            s_pop = 'ASN'
-                        elif tree_sequence.get_population(i) == 5:
-                            s_pop = 'Chimp'
-                        elif tree_sequence.get_population(i) == 6:
-                            s_pop = 'Deni'
-                        elif tree_sequence.get_population(i) == 7:
-                            s_pop = 'Split'
-                        if i % 2 == 0:
-                            # Write, as a string, the sample entry using
-                            # the population read from Tree1
-                            ind_entry = 'msp_' + str(i/2) + '\t' + s_pop +\
-                                        '\t' + s_pop
-                            pop_outfile.write(ind_entry + '\n')
-                    pop_outfile.close()
+                pop_outfile.close()
+            tree_sequence.write_vcf(vcf_outfile, 2)
 
-                # Tenn_nonAfr_100_n1_0.01_n2_0.01.vcf.gz
-                vcf_outfile = gzip.open(outdir + '_' + pop + '_' +
-                                        str(seed) + '_n1_' +
-                                        str(n1_admix_prop) + '_n2_' +
-                                        str(n2_admix_prop) +
-                                        '.vcf.gz', 'wb')
-                tree_sequence.write_vcf(vcf_outfile, 2)
+        vcf_outfile.close()
 
-            vcf_outfile.close()
+        # have to gzip seperately
+        with open(get_filename(options, '.vcf'), 'r') as f_in,\
+                gzip.open(get_filename(options, '.vcf.gz'), 'wb') as f_out:
 
-    print('fin', file=sys.stderr)
+            for lin in f_in.readlines():
+                f_out.write(str.encode(lin))
+
+        os.remove(get_filename(options, '.vcf'))

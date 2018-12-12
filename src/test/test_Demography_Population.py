@@ -4,7 +4,7 @@ import msprime
 
 def test_population():
     pop = Demography_Models.Population('test', 1e3, 0.0, 2, 75)
-    assert pop.name == 'test'
+    assert pop.abbreviation == 'test'
     assert pop.size == 1e3
     assert pop.rate == 0.0
     assert pop.samples == 2

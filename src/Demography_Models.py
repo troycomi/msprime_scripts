@@ -3,16 +3,18 @@ import msprime
 
 class Population(object):
     def __init__(self,
-                 name,
+                 abbreviation,
                  population_size,
                  growth_rate,
                  samples,
-                 generations):
-        self.name = name
+                 generations,
+                 long_name=''):
+        self.abbreviation = abbreviation
         self.size = population_size
         self.rate = growth_rate
         self.samples = samples
         self.generations = generations
+        self.long_name = long_name
 
     def get_sample(self, index):
         return [msprime.Sample(
@@ -143,48 +145,55 @@ class Base_demography(object):
         a list of Populations for the simulation"""
         self.populations = [
             # Altai/Vindija lineage effective population size
-            Population(name='N1',
+            Population(abbreviation='N1',
                        population_size=self.N_N1,
                        growth_rate=0.0,
                        samples=self.S_N1,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Neand1'),
 
             # Eastern Neandertal effective population size
-            Population(name='N2',
+            Population(abbreviation='N2',
                        population_size=self.N_N2,
                        growth_rate=0.0,
                        samples=self.S_N2,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Neand2'),
 
-            Population(name='AF',
+            Population(abbreviation='AF',
                        population_size=self.N_AF,
                        growth_rate=0.0166,
                        samples=self.options.AF_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='AFR'),
 
-            Population(name='EU',
+            Population(abbreviation='EU',
                        population_size=self.N_EU,
                        growth_rate=0.0195,
                        samples=self.options.EU_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='EUR'),
 
-            Population(name='AS',
+            Population(abbreviation='AS',
                        population_size=self.N_AS,
                        growth_rate=0.025,
                        samples=self.options.AS_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='ASN'),
 
-            Population(name='CH',
+            Population(abbreviation='CH',
                        population_size=self.N_CH,
                        growth_rate=0.0,
                        samples=2,
-                       generations=0),
+                       generations=0,
+                       long_name='Chimp'),
 
-            Population(name='DE',
+            Population(abbreviation='DE',
                        population_size=self.N_DE,
                        growth_rate=0.0,
                        samples=2,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Deni'),
 
         ]
 
@@ -364,8 +373,11 @@ class Base_demography(object):
     def get_population_map(self):
         result = {}
         for i, pop in enumerate(self.populations):
-            result[pop.name] = i
+            result[pop.abbreviation] = i
         return result
+
+    def get_long_name_map(self):
+        return [pop.long_name for pop in self.populations]
 
     def get_population_configuration(self):
         """build array of population configurations from self.populations"""
@@ -386,7 +398,7 @@ class Base_demography(object):
     def get_migration_matrix(self):
         result = []
         # terrible runtime but I can't think of another general solution
-        names = [pop.name for pop in self.populations]
+        names = [pop.abbreviation for pop in self.populations]
         for n in names:
             row = []
             for m in names:
@@ -615,53 +627,61 @@ class SplitPop_demography(Base_demography):
 
     def set_populations(self):
         self.populations = [
-            Population(name='N1',
+            Population(abbreviation='N1',
                        population_size=self.N_N1,
                        growth_rate=0.0,
                        samples=self.S_N1,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Neand1'),
 
-            Population(name='N2',
+            Population(abbreviation='N2',
                        population_size=self.N_N2,
                        growth_rate=0.0,
                        samples=self.S_N2,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Neand2'),
 
-            Population(name='AF',
+            Population(abbreviation='AF',
                        population_size=self.N_AF,
                        growth_rate=self.r_AF2,
                        samples=self.options.AF_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='AFR'),
 
-            Population(name='EU',
+            Population(abbreviation='EU',
                        population_size=self.N_EU,
                        growth_rate=self.r_EU2,
                        samples=self.options.EU_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='EUR'),
 
-            Population(name='AS',
+            Population(abbreviation='AS',
                        population_size=self.N_AS,
                        growth_rate=self.r_AS2,
                        samples=self.options.AS_sample_size,
-                       generations=0),
+                       generations=0,
+                       long_name='ASN'),
 
-            Population(name='CH',
+            Population(abbreviation='CH',
                        population_size=self.N_CH,
                        growth_rate=0.0,
                        samples=2,
-                       generations=0),
+                       generations=0,
+                       long_name='Chimp'),
 
-            Population(name='DE',
+            Population(abbreviation='DE',
                        population_size=self.N_DE,
                        growth_rate=0.0,
                        samples=2,
-                       generations=50e3 / self.generation_time),
+                       generations=50e3 / self.generation_time,
+                       long_name='Deni'),
 
-            Population(name='SP',
+            Population(abbreviation='SP',
                        population_size=self.N_SP,
                        growth_rate=0.0,
                        samples=2,
-                       generations=50e3 / self.generation_time)
+                       generations=50e3 / self.generation_time,
+                       long_name='Split')
 
         ]
 

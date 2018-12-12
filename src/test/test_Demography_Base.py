@@ -207,8 +207,3 @@ def test_migration_matrix(default, nonDefault):
          [0,   0,  0.7e-5,  3e-5,  0,  0,  0],  # AS
          [0,   0,  0,  0,  0,  0,  0],
          [0,   0,  0,  0,  0,  0,  0]]
-
-
-def test_simulation(default, nonDefault):
-    sim = default.simulate()
-    assert sim.Ne == default.N_A
