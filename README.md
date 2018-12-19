@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/troycomi/msprime_scripts.svg?branch=master)](https://travis-ci.com/troycomi/msprime_scripts)
+[![codecov](https://codecov.io/gh/troycomi/msprime_scripts/branch/master/graph/badge.svg)](https://codecov.io/gh/troycomi/msprime_scripts)
 
 # msprime_scripts
 > Untangling human migration through simulated admixture
