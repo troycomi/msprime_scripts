@@ -92,10 +92,62 @@ def test_single_changes(parser):
     compare_options(options, {'AS_sample_size': 1007})
     options = parser.parse_args(['-r', '3'])
     compare_options(options, {'AF_sample_size': 3})
+
+
+def test_migration_values(parser):
     options = parser.parse_args(['-G', 'AF_B_13e-5'])
-    compare_options(options, {'later_migrations': ['AF_B_13e-5']})
-    options = parser.parse_args(['-g', 'EU_AS_3e-5'])
-    compare_options(options, {'initial_migrations': ['EU_AS_3e-5']})
+    assert 2 == len(options.later_migrations)
+    assert 'AF_B_13e-5' in options.later_migrations
+
+    options = parser.parse_args([
+        '-G', 'AF_B_13e-5',
+        '-G', 'B_AF_12e-5'
+    ])
+    assert 2 == len(options.later_migrations)
+    assert 'AF_B_13e-5' in options.later_migrations
+    assert 'B_AF_12e-5' in options.later_migrations
+
+    options = parser.parse_args([
+        '-G', 'AF_B_13e-5',
+        '-G', 'B_AF_12e-5',
+        '-G', 'AF_EU_1e-5'
+    ])
+    assert 3 == len(options.later_migrations)
+    assert 'AF_B_13e-5' in options.later_migrations
+    assert 'B_AF_12e-5' in options.later_migrations
+    assert 'AF_EU_1e-5' in options.later_migrations
+
+    options = parser.parse_args([
+        '-G', 'AF_B_13e-5',
+        '-G', 'AF_B_12e-5',
+        '-G', 'AF_B_11e-5',
+        '-G', 'B_AF_12e-5'
+    ])
+    assert 2 == len(options.later_migrations)
+    assert 'AF_B_11e-5' in options.later_migrations
+    assert 'B_AF_12e-5' in options.later_migrations
+
+    options = parser.parse_args([
+        '-g', 'EU_AS_3e-5',
+        '-g', 'EU_AR_3e-5'
+    ])
+    assert 7 == len(options.initial_migrations)
+    assert 'EU_AS_3e-5' in options.initial_migrations
+    assert 'EU_AR_3e-5' in options.initial_migrations
+
+    options = parser.parse_args([
+        '-g', 'EU_AS_3e-5',
+        '-g', 'EU_AS_2e-5',
+        '-g', 'EU_AS_1e-5',
+    ])
+    assert 6 == len(options.initial_migrations)
+    assert 'EU_AS_1e-5' in options.initial_migrations
+
+    options = parser.parse_args([
+        '-g', 'EU_AS_3e-5'
+    ])
+    assert 6 == len(options.initial_migrations)
+    assert 'EU_AS_3e-5' in options.initial_migrations
 
 
 def test_type_error(parser):

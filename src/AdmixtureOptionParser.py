@@ -163,7 +163,8 @@ class admixture_option_parser(ArgumentParser):
                                "AF to EU as 15e-5) ;"
                                "default as symmetric migrations of "
                                "AF_EU_2.5e-5, AF_AS_0.78e-5, EU_AS_3.11e-5. "
-                               "Setting ANY value clears these defaults.")
+                               "Setting a value overwrites only that default. "
+                               "Only the last repeated population is retained.")
 
         self.add_argument("-G", "--later-migration",
                           dest="later_migrations",
@@ -172,21 +173,43 @@ class admixture_option_parser(ArgumentParser):
                                "migrations occuring during demographic "
                                "events. Same format as initial migrations ;"
                                "default symmetric migration of AF_B_15e-5. "
-                               "Setting ANY value clears these defaults. ")
+                               "Setting a value overwrites only that default.")
 
     def parse_args(self, args=None, namespace=None):
         options = ArgumentParser.parse_args(self, args, namespace)
 
-        # override default migrations if provided
-        if options.initial_migrations is None:
-            options.initial_migrations = [
+        default_initial_migrations = [
                 'AF_EU_2.5e-5', 'EU_AF_2.5e-5',
                 'AF_AS_0.78e-5', 'AS_AF_0.78e-5',
                 'EU_AS_3.11e-5', 'AS_EU_3.11e-5']
 
-        if options.later_migrations is None:
-            options.later_migrations = [
+        default_later_migrations = [
                 'AF_B_15e-5', 'B_AF_15e-5']
+
+        # override defaults, retain only last set values
+        migration_dict = {}
+        for m in default_initial_migrations:
+            toks = m.split('_')
+            migration_dict['_'.join(toks[0:2])] = toks[2]
+        if options.initial_migrations is not None:
+            for m in options.initial_migrations:
+                toks = m.split('_')
+                migration_dict['_'.join(toks[0:2])] = toks[2]
+
+        options.initial_migrations = [
+            k + '_' + v for k, v in migration_dict.items()]
+
+        migration_dict = {}
+        for m in default_later_migrations:
+            toks = m.split('_')
+            migration_dict['_'.join(toks[0:2])] = toks[2]
+        if options.later_migrations is not None:
+            for m in options.later_migrations:
+                toks = m.split('_')
+                migration_dict['_'.join(toks[0:2])] = toks[2]
+
+        options.later_migrations = [
+            k + '_' + v for k, v in migration_dict.items()]
 
         return options
 
