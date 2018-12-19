@@ -22,6 +22,7 @@ class file_printer(object):
 
         self.files['debug'] = options.debug_file
         self.files['haplo'] = options.haplo_file
+        self.files['ils'] = options.ils_file
         self.files['option'] = options.option_file
         self.files['vcf'] = options.vcf_file
         self.files['f4dstat'] = options.f4dstat_file
@@ -264,7 +265,16 @@ class file_printer(object):
         return self.writers['haplo'] is not None
 
     def print_haplo(self, haplo_entry_list):
-        writer = self.writers['haplo']
+        self.print_haplo_helper('haplo', haplo_entry_list)
+
+    def ils_needed(self):
+        return self.writers['ils'] is not None
+
+    def print_ils(self, haplo_entry_list):
+        self.print_haplo_helper('ils', haplo_entry_list)
+
+    def print_haplo_helper(self, writer, haplo_entry_list):
+        writer = self.writers[writer]
 
         if writer is None:
             return

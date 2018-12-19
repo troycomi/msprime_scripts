@@ -27,6 +27,12 @@ def main():
             haplotype_entry_list = get_haplo_entries(tree_sequence, options)
             printer.print_haplo(haplotype_entry_list)
 
+        if printer.ils_needed():
+            haplotype_entry_list = get_haplo_entries(tree_sequence,
+                                                     options,
+                                                     isILS=True)
+            printer.print_ils(haplotype_entry_list)
+
         # simulate with 20 replicate for F4Dstat
         if printer.f4dstat_needed():
             simulation = model.simulate(replicates=20)
@@ -55,7 +61,8 @@ def get_model(options):
 
 
 def introgressed_samples_fn(ts, neanderthal_mrca,
-                            neanderthal_samples, segments):
+                            neanderthal_samples, segments,
+                            isILS=False):
     # Define the samples that carry introgressed segments?
     trees = ts.trees()
     tree = next(trees)
@@ -77,35 +84,39 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
             # the start of the defined segment
             tree = next(trees)
 
-        assert tree.get_interval()[0] == left
-        start = None
-        last_human_leaves = None
+        # second part of conditional will not run if isILS is False
+        if not isILS or set(neanderthal_samples).issubset(
+                set(tree.leaves(neanderthal_mrca))):
 
-        while tree is not None and tree.get_interval()[1] <= right:
-            human_leaves = set(tree.leaves(neanderthal_mrca))\
-                           - set(neanderthal_samples)
-            # Create a set() of all the human leaves represented in this tree
-            #  that share an mrca in the Neandertal lineage
-            #  (i.e. mrca node is in Neand population)
-            # neanderthal_mrca is supplied from the node_map dictionary
-            #  as the parent node for the tree present
-            #  in the Neandertal population
-            # tree.leaves(n) returns an iterator over all the leaves
-            #  in this tree underneath the specified node (in this
-            #  case the neanderthal_mrca)
-            if start is None:
-                last_human_leaves = human_leaves
-                start = tree.get_interval()[0]
-            elif human_leaves != last_human_leaves:
-                end = tree.get_interval()[0]
-                yield start, end, last_human_leaves
-                start = end
-                last_human_leaves = human_leaves
-            tree = next(trees, None)
-        yield start, right, last_human_leaves
+            assert tree.get_interval()[0] == left
+            start = None
+            last_human_leaves = None
+
+            while tree is not None and tree.get_interval()[1] <= right:
+                human_leaves = set(tree.leaves(neanderthal_mrca))\
+                               - set(neanderthal_samples)
+                # Create a set() of all the human leaves
+                #  that share an mrca in the Neandertal lineage
+                #  (i.e. mrca node is in Neand population)
+                # neanderthal_mrca is supplied from the node_map dictionary
+                #  as the parent node for the tree present
+                #  in the Neandertal population
+                # tree.leaves(n) returns an iterator over all the leaves
+                #  in this tree underneath the specified node (in this
+                #  case the neanderthal_mrca)
+                if start is None:
+                    last_human_leaves = human_leaves
+                    start = tree.get_interval()[0]
+                elif human_leaves != last_human_leaves:
+                    end = tree.get_interval()[0]
+                    yield start, end, last_human_leaves
+                    start = end
+                    last_human_leaves = human_leaves
+                tree = next(trees, None)
+            yield start, right, last_human_leaves
 
 
-def get_haplo_entries(tree_sequence, options):
+def get_haplo_entries(tree_sequence, options, isILS=False):
     haplo_entry_list = []
     human_samples = get_human_samples(options)
 
@@ -113,8 +124,15 @@ def get_haplo_entries(tree_sequence, options):
 
     # fill node_map with records from tree
     for record in tree_sequence.records():
-        if record.population <= 1:
-            node_map[record.node].append((record.left, record.right))
+        if isILS:
+            if record.population == 2 and \
+                    record.time >= 28000 and \
+                    record.time < 50000:
+                node_map[record.node].append((record.left, record.right))
+
+        else:
+            if record.population <= 1:
+                node_map[record.node].append((record.left, record.right))
 
     for neanderthal_mrca, segments in node_map.items():
         # Run the introgressed_samples function,
@@ -124,7 +142,8 @@ def get_haplo_entries(tree_sequence, options):
             tree_sequence,
             neanderthal_mrca,
             range(0, options.s_n1 + options.s_n2),
-            segments)
+            segments,
+            isILS)
 
         for left, right, samples in iterator:
             for s in samples:

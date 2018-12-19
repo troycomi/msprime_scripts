@@ -94,6 +94,15 @@ class admixture_option_parser(ArgumentParser):
                                "argument is given will output to stdout. If "
                                "not flagged, output will be suppressed.")
 
+        self.add_argument("--ils",
+                          dest="ils_file",
+                          nargs='?',
+                          const='*',
+                          default=None,
+                          help="ils call output filename.  If no "
+                               "argument is given will output to stdout. If "
+                               "not flagged, output will be suppressed.")
+
         self.add_argument("--option",
                           dest="option_file",
                           nargs='?',

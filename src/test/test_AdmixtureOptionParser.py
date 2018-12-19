@@ -32,6 +32,7 @@ def compare_options(options, nondefault={}):
                     'AF_B_15e-5', 'B_AF_15e-5'],
                 'debug_file': None,
                 'haplo_file': None,
+                'ils_file': None,
                 'vcf_file': None,
                 'f4dstat_file': None,
                 'option_file': None,
