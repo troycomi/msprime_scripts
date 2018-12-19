@@ -3,10 +3,11 @@
 module load anaconda3
 conda activate msprime_scripts
 
-[[ -s test.out ]] && rm test.out Tenn*
-python ../Admixture_Simulation.py -p nonAfr -o Tenn \
-    -l 1e4 -s 2 -i 2 -n 0.1 -d 0.1 -c haplo &>>test.out
-python ../Admixture_Simulation.py -p nonAfr -o Tenn  \
-    -l 1e4 -s 2 -i 2 -n 0.1 -d 0.1 -c F4Dstat &>>test.out
+[[ -d version_1 ]] && rm -rf version_1
 
+python ../Admixture_Simulation.py -p nonAfr \
+    -m Tenn --out-dir version_1 \
+    -l 1e4 -s 2 -n 0.1 -d 0.1 > teststd.out
+
+exit
 ./comp_samples.sh

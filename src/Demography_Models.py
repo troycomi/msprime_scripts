@@ -1,13 +1,15 @@
 import msprime
+import math
+import numpy as np
 
 
 class Population(object):
     def __init__(self,
                  abbreviation,
                  population_size,
-                 growth_rate,
-                 samples,
-                 generations,
+                 growth_rate=0.0,
+                 samples=2,
+                 generations=0,
                  long_name=''):
         self.abbreviation = abbreviation
         self.size = population_size
@@ -41,9 +43,9 @@ class Population(object):
 
 
 class Base_demography(object):
-    def __init__(self, S_N1, S_N2, options):
-        self.S_N1 = S_N1
-        self.S_N2 = S_N2
+    def __init__(self, options):
+        self.S_N1 = options.s_n1
+        self.S_N2 = options.s_n2
         self.options = options
 
         # Set Percent introgression level
@@ -53,34 +55,33 @@ class Base_demography(object):
         self.m_PULSE2 = self.options.n2_admix_prop
         self.set_constants()
         self.set_populations()
-        self.set_migrations()
         self.set_demographic_events()
 
-    def simulate(self):
-        if(self.options.haplo == "debug"):
-            msprime.DemographyDebugger(
-                Ne=self.N_A,
-                population_configurations=self.get_debug_configuration(),
-                migration_matrix=self.get_migration_matrix(),
-                demographic_events=self.get_demographic_events()
-            ).print_history()
+    def simulate(self, replicates):
+        # replicates = 20 if self.options.haplo == "F4Dstat"\
+                        # else 1
 
-        else:
-            replicates = 20 if self.options.haplo == "F4Dstat"\
-                            else 1
+        return msprime.simulate(
+            Ne=self.N_A,
+            length=self.length,
+            recombination_rate=self.recombination_rate,
+            mutation_rate=self.mutation_rate,
+            samples=self.get_samples(),
+            population_configurations=self.get_population_configuration(),
+            migration_matrix=self.get_migration_matrix(),
+            demographic_events=self.get_demographic_events(),
+            num_replicates=replicates,
+            random_seed=self.options.seed
+        )
 
-            return msprime.simulate(
-                Ne=self.N_A,
-                length=self.length,
-                recombination_rate=self.recombination_rate,
-                mutation_rate=self.mutation_rate,
-                samples=self.get_samples(),
-                population_configurations=self.get_population_configuration(),
-                migration_matrix=self.get_migration_matrix(),
-                demographic_events=self.get_demographic_events(),
-                num_replicates=replicates,
-                random_seed=self.options.seed
-            )
+    def print_debug(self, output):
+        print(np.matrix(self.get_migration_matrix()), file=output)
+        msprime.DemographyDebugger(
+            Ne=self.N_A,
+            population_configurations=self.get_debug_configuration(),
+            migration_matrix=self.get_migration_matrix(),
+            demographic_events=self.get_demographic_events()
+        ).print_history(output)
 
     def set_constants(self):
         self.generation_time = 25  # years/generation
@@ -119,12 +120,18 @@ class Base_demography(object):
         self.T_DE_N = 500e3 / self.generation_time
         # Altai/Vindija and Eastern Neandertal popualation split,
         self.T_N1_N2 = ((self.options.t_n1_n2) * 1e3) / self.generation_time
+        self.T_N1_SAMPLE = ((self.options.t_n1_sample) * 1e3) \
+            / self.generation_time
+        self.T_N2_SAMPLE = ((self.options.t_n2_sample) * 1e3) \
+            / self.generation_time
         # African population expansion
         self.T_AF = 148e3 / self.generation_time
         # out of Africa
         self.T_B = 100e3 / self.generation_time
         # Neandertal introgression pulse 1
         self.T_PULSE1 = 55e3 / self.generation_time
+        # A 3rd bottleneck following shortly after initial admixture event
+        self.T_B_BN = 45e3 / self.generation_time
         # European / East Asian split
         self.T_EU_AS = 23e3 / self.generation_time
         # Neandertal introgression pulse 2
@@ -147,69 +154,50 @@ class Base_demography(object):
             # Altai/Vindija lineage effective population size
             Population(abbreviation='N1',
                        population_size=self.N_N1,
-                       growth_rate=0.0,
                        samples=self.S_N1,
-                       generations=50e3 / self.generation_time,
+                       generations=self.T_N1_SAMPLE,
                        long_name='Neand1'),
 
             # Eastern Neandertal effective population size
             Population(abbreviation='N2',
                        population_size=self.N_N2,
-                       growth_rate=0.0,
                        samples=self.S_N2,
-                       generations=50e3 / self.generation_time,
+                       generations=self.T_N2_SAMPLE,
                        long_name='Neand2'),
 
             Population(abbreviation='AF',
                        population_size=self.N_AF,
                        growth_rate=0.0166,
                        samples=self.options.AF_sample_size,
-                       generations=0,
                        long_name='AFR'),
 
             Population(abbreviation='EU',
                        population_size=self.N_EU,
                        growth_rate=0.0195,
                        samples=self.options.EU_sample_size,
-                       generations=0,
                        long_name='EUR'),
 
             Population(abbreviation='AS',
                        population_size=self.N_AS,
                        growth_rate=0.025,
                        samples=self.options.AS_sample_size,
-                       generations=0,
                        long_name='ASN'),
 
             Population(abbreviation='CH',
                        population_size=self.N_CH,
-                       growth_rate=0.0,
-                       samples=2,
-                       generations=0,
                        long_name='Chimp'),
 
             Population(abbreviation='DE',
                        population_size=self.N_DE,
-                       growth_rate=0.0,
-                       samples=2,
                        generations=50e3 / self.generation_time,
                        long_name='Deni'),
 
         ]
 
-    def set_migrations(self):
-        """specify the non-zero migrations in the simulation
-        a list of tuples of (name1, name2, value)
-        names must match those given in set_populations"""
-        self.migrations = [
-            ('AF', 'AS', self.options.m_AF_AS),
-            ('AF', 'EU', self.options.m_AF_EU),
-            ('EU', 'AS', self.options.m_EU_AS)
-        ]
-
     def set_demographic_events(self):
         """set the list of demographic events in self.events"""
         ids = self.get_population_map()
+        migrations = self.get_later_migrations()
 
         self.events = []
 
@@ -277,14 +265,15 @@ class Base_demography(object):
                 rate=0),
 
             # migration between "B" and Africa begins
+            # note transposed order of indices
             msprime.MigrationRateChange(
                 time=self.T_EU_AS,
-                rate=self.options.m_AF_B,
-                matrix_index=(ids['AF'], ids['B'])),
-            msprime.MigrationRateChange(
-                time=self.T_EU_AS,
-                rate=self.options.m_AF_B,
+                rate=migrations.get('AF_B', 0.0),
                 matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0.0),
+                matrix_index=(ids['AF'], ids['B'])),
 
             # set parameters of population "B"
             msprime.PopulationParametersChange(
@@ -312,12 +301,6 @@ class Base_demography(object):
                 time=self.T_B,
                 rate=0),
 
-            # set parameters of ancestral modern human population
-            msprime.PopulationParametersChange(
-                time=self.T_AF,
-                initial_size=self.N_A,
-                population_id=ids['AF']),
-
             # N_2 merges with N_1 at T_N1_N2
             msprime.MassMigration(
                 time=self.T_N1_N2,
@@ -330,6 +313,12 @@ class Base_demography(object):
                 time=self.T_N1_N2,
                 initial_size=self.N_N1,
                 population_id=ids['N1']),
+
+            # set parameters of ancestral modern human population
+            msprime.PopulationParametersChange(
+                time=self.T_AF,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
 
             # DE merges with N1
             msprime.MassMigration(
@@ -395,23 +384,38 @@ class Base_demography(object):
             result += p.get_sample(i)
         return result
 
+    def get_initial_migrations(self):
+        '''convert the list of strings from option parser into
+        a dictionary with the keys all validated as a Population'''
+        result = {}
+        validNames = [pop.abbreviation for pop in self.populations]
+        for entry in self.options.initial_migrations:
+            toks = entry.split('_')
+            for i in range(2):
+                if toks[0] not in validNames:
+                    raise ValueError('{} not a known population'
+                                     .format(toks[0]))
+            result['{}_{}'.format(toks[0], toks[1])] = float(toks[2])
+
+        return result
+
+    def get_later_migrations(self):
+        '''convert list of strings from option parser into a
+        dictionary.  Keys not validated as populations'''
+        result = {}
+        for entry in self.options.later_migrations:
+            toks = entry.split('_')
+            result['{}_{}'.format(toks[0], toks[1])] = float(toks[2])
+        return result
+
     def get_migration_matrix(self):
         result = []
-        # terrible runtime but I can't think of another general solution
+        migrations = self.get_initial_migrations()
         names = [pop.abbreviation for pop in self.populations]
-        for n in names:
+        for r in names:
             row = []
-            for m in names:
-                found = False
-                for entry in self.migrations:
-                    if (n == entry[0] and m == entry[1]) or \
-                            (n == entry[1] and m == entry[0]):
-                        row.append(entry[2])
-                        found = True
-                        break
-                if not found:
-                    row.append(0)
-
+            for c in names:
+                row.append(migrations.get('{}_{}'.format(c, r), 0))
             result.append(row)
         return result
 
@@ -421,10 +425,435 @@ class Base_demography(object):
 
 class Tenn_demography(Base_demography):
     """Small change from base as base was made from Tenn"""
-    
+
     def get_debug_configuration(self):
         return [pop.get_debug_configuration(includeRate=True)
                 for pop in self.populations]
+
+
+class Tenn_no_modern_migration(Tenn_demography):
+    """Modified version of Tennison without modern migration"""
+    def set_demographic_events(self):
+        """set the list of demographic events in self.events"""
+        ids = self.get_population_map()
+        # NOTE: this may need to be initial migrations to match current version
+        # leaving as later as that is more logical
+        migrations = self.get_later_migrations()
+
+        self.events = []
+
+        self.events += [
+            # turn off all migration from t=0 until T_ACL_GRW (5kya)
+            msprime.MigrationRateChange(
+                time=0,
+                rate=0),
+
+            # stop rapid population growth in AF
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                initial_size=self.N_AF0,
+                growth_rate=0,
+                population_id=ids['AF']),
+
+            # stop rapid population growth in EU
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                growth_rate=self.r_EU1,
+                population_id=ids['EU']),
+
+            # stop rapid population growth in AS
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                growth_rate=self.r_AS1,
+                population_id=ids['AS']),
+
+
+            # start modern migration parameters at 5kya
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('AF_EU', 0),
+                matrix_index=(ids['EU'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('EU_AF', 0),
+                matrix_index=(ids['AF'], ids['EU'])),
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('AF_AS', 0),
+                matrix_index=(ids['AS'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('AS_AF', 0),
+                matrix_index=(ids['AF'], ids['AS'])),
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('EU_AS', 0),
+                matrix_index=(ids['AS'], ids['EU'])),
+            msprime.MigrationRateChange(
+                time=self.T_ACL_GRW,
+                rate=migrations.get('AS_EU', 0),
+                matrix_index=(ids['EU'], ids['AS'])),
+
+            # set AS popsize to AS0
+            msprime.PopulationParametersChange(
+                time=self.T_PULSE2-1,
+                initial_size=self.N_AS0,
+                growth_rate=0,
+                population_id=ids['AS']),
+
+            # Neand1 to EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE2,
+                source=ids['AS'],
+                destination=ids['N1'],
+                proportion=self.m_PULSE2),
+
+
+            # set EU popsize at EU0
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS-1,
+                initial_size=self.N_EU0,
+                growth_rate=0,
+                population_id=ids['EU']),
+
+            # set AS popsize to AS0
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS-1,
+                initial_size=self.N_AS0,
+                growth_rate=0,
+                population_id=ids['AS']),
+
+            # AS merges into EU, now termed "B"
+            msprime.MassMigration(
+                time=self.T_EU_AS,
+                source=ids['AS'],
+                destination=ids['EU'],
+                proportion=1.0)
+        ]
+
+        ids['B'] = ids['EU']
+
+        self.events += [
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=0),
+
+            # Change rate m_AF_EU to m_AF_B m(source, dest) backward in time
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('AF_B', 0),
+                matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0),
+                matrix_index=(ids['AF'], ids['B'])),
+
+            # set parameters of population "B"
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS,
+                initial_size=self.N_B,
+                growth_rate=0,
+                population_id=ids['B']),
+
+            # Neand1 to EUR_EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE1,
+                source=ids['B'],
+                destination=0,
+                proportion=self.m_PULSE1),
+
+            # Population B merges into Africa at T_B
+            msprime.MassMigration(
+                time=self.T_B,
+                source=ids['B'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_B,
+                rate=0),
+
+            # N_2 merges with N_1 at T_N1_N2
+            msprime.MassMigration(
+                time=self.T_N1_N2,
+                source=ids['N2'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            # set parameters of ancestral Neandertal population
+            msprime.PopulationParametersChange(
+                time=self.T_N1_N2,
+                initial_size=self.N_N1,
+                population_id=ids['N1']),
+
+            # set parameters of ancestral modern human population
+            msprime.PopulationParametersChange(
+                time=self.T_AF,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
+
+            # DE merges with N1
+            msprime.MassMigration(
+                time=self.T_DE_N,
+                source=ids['DE'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            msprime.PopulationParametersChange(
+                time=self.T_DE_N,
+                initial_size=self.N_N1,
+                population_id=ids['N1']),
+
+            # Neandertals merge into modern human lineage at time T_MH_N
+            msprime.MassMigration(
+                time=self.T_MH_N,
+                source=ids['N1'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancetral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_N,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
+
+            # Chimp lineage merges into ancestral hominin population
+            # at time T_MH_CH
+            msprime.MassMigration(
+                time=self.T_MH_CH,
+                source=ids['CH'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancestral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_CH,
+                initial_size=self.N_A,
+                population_id=ids['AF'])
+        ]
+
+
+class Tenn_pulsed_migration(Tenn_demography):
+    """Modified version of Tennison with pulsed migration"""
+    def set_demographic_events(self):
+        """set the list of demographic events in self.events"""
+        ids = self.get_population_map()
+
+        # NOTE: this may need to be initial migrations to match current version
+        # leaving as later as that is more logical
+        migrations = self.get_later_migrations()
+
+        self.events = []
+
+        self.events += [
+            # turn off all migration from t=0 until T_ACL_GRW (5kya)
+            msprime.MigrationRateChange(
+                time=0,
+                rate=0),
+
+            # stop rapid population growth in AF
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                initial_size=self.N_AF0,
+                growth_rate=0,
+                population_id=ids['AF']),
+
+            # stop rapid population growth in EU
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                growth_rate=self.r_EU1,
+                population_id=ids['EU']),
+
+            # stop rapid population growth in AS
+            msprime.PopulationParametersChange(
+                time=self.T_ACL_GRW,
+                growth_rate=self.r_AS1,
+                population_id=ids['AS']),
+
+            # set AS popsize to AS0
+            msprime.PopulationParametersChange(
+                time=self.T_PULSE2-1,
+                initial_size=self.N_AS0,
+                growth_rate=0,
+                population_id=ids['AS']),
+
+            # Neand1 to EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE2,
+                source=ids['AS'],
+                destination=ids['N1'],
+                proportion=self.m_PULSE2),
+
+            # start modern migration parameters at 5kya
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('AF_EU', 0),
+                matrix_index=(ids['EU'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('EU_AF', 0),
+                matrix_index=(ids['AF'], ids['EU'])),
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('AF_AS', 0),
+                matrix_index=(ids['AS'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('AS_AF', 0),
+                matrix_index=(ids['AF'], ids['AS'])),
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('EU_AS', 0),
+                matrix_index=(ids['AS'], ids['EU'])),
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2,
+                rate=(self.T_EU_AS - self.T_ACL_GRW) *
+                migrations.get('AS_EU', 0),
+                matrix_index=(ids['EU'], ids['AS'])),
+
+            # stop migration parameters
+            msprime.MigrationRateChange(
+                time=self.T_PULSE2+10,
+                rate=0),
+
+            # set EU popsize at EU0
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS-1,
+                initial_size=self.N_EU0,
+                growth_rate=0,
+                population_id=ids['EU']),
+
+            # set AS popsize to AS0
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS-1,
+                initial_size=self.N_AS0,
+                growth_rate=0,
+                population_id=ids['AS']),
+
+            # AS merges into EU, now termed "B"
+            msprime.MassMigration(
+                time=self.T_EU_AS,
+                source=ids['AS'],
+                destination=ids['EU'],
+                proportion=1.0),
+        ]
+
+        ids['B'] = ids['EU']
+
+        self.events += [
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=0),
+
+            # set parameters of population "B"
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS,
+                initial_size=self.N_B,
+                growth_rate=0,
+                population_id=ids['B']),
+
+
+            # start ancient migration parameters at 45kya
+            msprime.MigrationRateChange(
+                time=self.T_B_BN,
+                rate=(self.T_B - self.T_EU_AS) *
+                migrations.get('AF_B', 0),
+                matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_B_BN,
+                rate=(self.T_B - self.T_EU_AS) *
+                migrations.get('B_AF', 0),
+                matrix_index=(ids['AF'], ids['B'])),
+            # stop migration parameters
+            msprime.MigrationRateChange(
+                time=self.T_B_BN+10,
+                rate=0),
+
+
+            # Neand1 to EUR_EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE1,
+                source=ids['B'],
+                destination=ids['N1'],
+                proportion=self.m_PULSE1),
+
+            # Population B merges into Africa at T_B
+            msprime.MassMigration(
+                time=self.T_B,
+                source=ids['B'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_B,
+                rate=0),
+
+            # N_2 merges with N_1 at T_N1_N2
+            msprime.MassMigration(
+                time=self.T_N1_N2,
+                source=ids['N2'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            # set parameters of ancestral Neandertal population
+            msprime.PopulationParametersChange(
+                time=self.T_N1_N2,
+                initial_size=self.N_N1,
+                population_id=ids['N1']),
+
+            # set parameters of ancestral modern human population
+            msprime.PopulationParametersChange(
+                time=self.T_AF,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
+
+            # DE merges with N1
+            msprime.MassMigration(
+                time=self.T_DE_N,
+                source=ids['DE'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            msprime.PopulationParametersChange(
+                time=self.T_DE_N,
+                initial_size=self.N_N1,
+                population_id=ids['N1']),
+            # Neandertals merge into modern human lineage at time T_MH_N
+            msprime.MassMigration(
+                time=self.T_MH_N,
+                source=ids['N1'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancetral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_N,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
+
+            # Chimp lineage merges into ancestral hominin population
+            # at time T_MH_CH
+            msprime.MassMigration(
+                time=self.T_MH_CH,
+                source=ids['CH'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancestral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_CH,
+                initial_size=self.N_A,
+                population_id=ids['AF'])
+        ]
 
 
 class Sriram_demography(Base_demography):
@@ -448,8 +877,6 @@ class Sriram_demography(Base_demography):
         self.N_CH = 10000
         self.N_DE = 10000
         self.N_EU = 10000
-        self.N_EU0 = 1000
-        self.N_AS0 = 510
         self.N_AS = 10000
 
         # Neandertal bottleneck            ### DIFFERENT FROM TENNESSEN
@@ -476,15 +903,16 @@ class Sriram_demography(Base_demography):
 
     def set_demographic_events(self):
         ids = self.get_population_map()
+        migrations = self.get_later_migrations()
 
         self.events = []
 
         self.events += [
-            # Neand2 to EAS pulse of introgression
+            # Neand1 to EAS pulse of introgression
             msprime.MassMigration(
                 time=self.T_PULSE2,
                 source=ids['AS'],
-                destination=ids['N2'],
+                destination=ids['N1'],
                 proportion=self.m_PULSE2),
 
             # AS merges into EU, now termed "B"
@@ -502,6 +930,16 @@ class Sriram_demography(Base_demography):
             msprime.MigrationRateChange(
                 time=self.T_EU_AS,
                 rate=0),
+
+            # migration between "B" and Africa begins
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('AF_B', 0),
+                matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0),
+                matrix_index=(ids['AF'], ids['B'])),
 
             # set parameters of population "B"
             msprime.PopulationParametersChange(
@@ -543,6 +981,19 @@ class Sriram_demography(Base_demography):
                 time=self.T_B,
                 rate=0),
 
+            # N_2 merges with N_1 at T_N1_N2
+            msprime.MassMigration(
+                time=self.T_N1_N2,
+                source=ids['N2'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            # set parameters of ancestral Neandertal population
+            msprime.PopulationParametersChange(
+                time=self.T_N1_N2,
+                initial_size=self.N_A,
+                population_id=ids['N1']),
+
             # Neand1 has short bottleneck
             msprime.PopulationParametersChange(
                 time=self.T_N_BN,
@@ -555,19 +1006,6 @@ class Sriram_demography(Base_demography):
                 time=self.T_N_BN + 20,
                 initial_size=self.N_A,
                 growth_rate=0,
-                population_id=ids['N1']),
-
-            # N_2 merges with N_1 at T_N1_N2
-            msprime.MassMigration(
-                time=self.T_N1_N2,
-                source=ids['N2'],
-                destination=ids['N1'],
-                proportion=1.0),
-
-            # set parameters of ancestral Neandertal population
-            msprime.PopulationParametersChange(
-                time=self.T_N1_N2,
-                initial_size=self.N_A,
                 population_id=ids['N1']),
 
             # DE merges with N1
@@ -629,14 +1067,12 @@ class SplitPop_demography(Base_demography):
         self.populations = [
             Population(abbreviation='N1',
                        population_size=self.N_N1,
-                       growth_rate=0.0,
                        samples=self.S_N1,
                        generations=50e3 / self.generation_time,
                        long_name='Neand1'),
 
             Population(abbreviation='N2',
                        population_size=self.N_N2,
-                       growth_rate=0.0,
                        samples=self.S_N2,
                        generations=50e3 / self.generation_time,
                        long_name='Neand2'),
@@ -645,41 +1081,31 @@ class SplitPop_demography(Base_demography):
                        population_size=self.N_AF,
                        growth_rate=self.r_AF2,
                        samples=self.options.AF_sample_size,
-                       generations=0,
                        long_name='AFR'),
 
             Population(abbreviation='EU',
                        population_size=self.N_EU,
                        growth_rate=self.r_EU2,
                        samples=self.options.EU_sample_size,
-                       generations=0,
                        long_name='EUR'),
 
             Population(abbreviation='AS',
                        population_size=self.N_AS,
                        growth_rate=self.r_AS2,
                        samples=self.options.AS_sample_size,
-                       generations=0,
                        long_name='ASN'),
 
             Population(abbreviation='CH',
                        population_size=self.N_CH,
-                       growth_rate=0.0,
-                       samples=2,
-                       generations=0,
                        long_name='Chimp'),
 
             Population(abbreviation='DE',
                        population_size=self.N_DE,
-                       growth_rate=0.0,
-                       samples=2,
                        generations=50e3 / self.generation_time,
                        long_name='Deni'),
 
             Population(abbreviation='SP',
                        population_size=self.N_SP,
-                       growth_rate=0.0,
-                       samples=2,
                        generations=50e3 / self.generation_time,
                        long_name='Split')
 
@@ -694,6 +1120,7 @@ class SplitPop_demography(Base_demography):
 
     def set_demographic_events(self):
         ids = self.get_population_map()
+        migrations = self.get_later_migrations()
 
         self.events = []
 
@@ -724,11 +1151,11 @@ class SplitPop_demography(Base_demography):
                 growth_rate=0,
                 population_id=ids['AS']),
 
-            # Neand2 to EAS pulse of introgression
+            # Neand1 to EAS pulse of introgression
             msprime.MassMigration(
                 time=self.T_PULSE2,
                 source=ids['AS'],
-                destination=ids['N2'],
+                destination=ids['N1'],
                 proportion=self.m_PULSE2),
 
             # set EU popsize at EU0
@@ -764,11 +1191,11 @@ class SplitPop_demography(Base_demography):
             # migration between "B" and Africa begins
             msprime.MigrationRateChange(
                 time=self.T_EU_AS,
-                rate=self.options.m_AF_B,
+                rate=migrations.get('B_AF', 0.0),
                 matrix_index=(ids['AF'], ids['B'])),
             msprime.MigrationRateChange(
                 time=self.T_EU_AS,
-                rate=self.options.m_AF_B,
+                rate=migrations.get('AF_B', 0.0),
                 matrix_index=(ids['B'], ids['AF'])),
 
             # set parameters of population "B"
@@ -818,12 +1245,6 @@ class SplitPop_demography(Base_demography):
                 time=self.T_B,
                 rate=0),
 
-            # set parameters of ancestral modern human population
-            msprime.PopulationParametersChange(
-                time=self.T_AF,
-                initial_size=self.N_A,
-                population_id=ids['AF']),
-
             # N_2 merges with N_1 at T_N1_N2
             msprime.MassMigration(
                 time=self.T_N1_N2,
@@ -836,6 +1257,12 @@ class SplitPop_demography(Base_demography):
                 time=self.T_N1_N2,
                 initial_size=self.N_N1,
                 population_id=ids['N1']),
+
+            # set parameters of ancestral modern human population
+            msprime.PopulationParametersChange(
+                time=self.T_AF,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
 
             # DE merges with N1
             msprime.MassMigration(
@@ -879,3 +1306,114 @@ class SplitPop_demography(Base_demography):
     def get_debug_configuration(self):
         return [pop.get_debug_configuration(includeRate=True)
                 for pop in self.populations]
+
+
+class Out_of_africa_demography(Base_demography):
+    def set_constants(self):
+        Base_demography.set_constants(self)
+
+        self.N_A = 7300
+        self.N_B = 2100
+        self.N_AF = 12300
+        self.N_oAF = 1000
+        self.N_EU0 = 1000
+        self.N_AS0 = 510
+
+        self.T_AF = 220e3 / self.generation_time
+        # create a split between and African outgroup and main African group
+        self.T_oAF_AF = 200e3 / self.generation_time
+        self.T_B = 140e3 / self.generation_time
+        self.T_EU_AS = 21.2e3 / self.generation_time
+        # We need to work out the starting (diploid) population sizes based on
+        # the growth rates provided for these two populations
+        self.r_EU = 0.004
+        self.r_AS = 0.0055
+        self.N_EU = self.N_EU0 / math.exp(-self.r_EU * self.T_EU_AS)
+        self.N_AS = self.N_AS0 / math.exp(-self.r_AS * self.T_EU_AS)
+
+    def set_populations(self):
+        self.populations = [
+            Population(abbreviation='oAF',
+                       population_size=self.N_oAF,
+                       long_name='oAFR'),
+
+            Population(abbreviation='AF',
+                       population_size=self.N_AF,
+                       samples=self.options.AF_sample_size,
+                       long_name='AFR'),
+
+            Population(abbreviation='EU',
+                       population_size=self.N_EU,
+                       growth_rate=self.r_EU,
+                       samples=self.options.EU_sample_size,
+                       long_name='EUR'),
+
+            Population(abbreviation='AS',
+                       population_size=self.N_AS,
+                       growth_rate=self.r_AS,
+                       samples=self.options.AS_sample_size,
+                       long_name='ASN'),
+
+            Population(abbreviation='CH',
+                       population_size=self.N_CH,
+                       long_name='Chimp'),
+        ]
+
+    def set_demographic_events(self):
+        ids = self.get_population_map()
+        migrations = self.get_later_migrations()
+
+        self.events = []
+
+        self.events += [
+
+            # CEU and CHB merge into B with rate changes at T_EU_AS
+            msprime.MassMigration(
+                time=self.T_EU_AS,
+                source=ids['AS'],
+                destination=ids['EU'],
+                proportion=1.0),
+
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=0),
+
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('AF_B', 0),
+                matrix_index=(ids['EU'], ids['AF'])),
+
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0),
+                matrix_index=(ids['AF'], ids['EU'])),
+
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS,
+                initial_size=self.N_B,
+                growth_rate=0,
+                population_id=ids['EU'])
+        ]
+
+        ids['B'] = ids['EU']
+
+        self.events += [
+            # Population B merges into YRI at T_B
+            msprime.MassMigration(
+                time=self.T_B,
+                source=ids['B'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            msprime.MassMigration(
+                time=self.T_oAF_AF,
+                source=ids['oAF'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # Size changes to N_A at T_AF
+            msprime.PopulationParametersChange(
+                time=self.T_AF,
+                initial_size=self.N_A,
+                population_id=ids['AF'])
+        ]

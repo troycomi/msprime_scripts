@@ -8,33 +8,36 @@ import msprime
 def default():
     parser = AdmixtureOptionParser.admixture_option_parser()
     options = parser.parse_args([])
-    return Demography_Models.Base_demography(2, 1, options)
+    return Demography_Models.Base_demography(options)
 
 
 @pytest.fixture
 def nonDefault():
     parser = AdmixtureOptionParser.admixture_option_parser()
     options = parser.parse_args(['-s', '4',
-                                 '-i', '1',
                                  '-n', '0.003',
                                  '-d', '0.001',
+                                 '--Neand1_sample_size', '3',
+                                 '--Neand2_sample_size', '1',
                                  '-t', '450',
+                                 '--time_N1_sample', '50',
+                                 '--time_N2_sample', '120',
                                  '-l', '1e4',
                                  '-e', '1007',
                                  '-a', '1007',
                                  '-r', '3',
-                                 '-c', 'haplo',
-                                 '--migration_AF_B', '13e-5',
-                                 '--migration_AF_AS', '0.7e-5',
-                                 '--migration_AF_EU', '2e-5',
-                                 '--migration_EU_AS', '3e-5',
+                                 '-g', 'AF_EU_1.5e-5',
+                                 '-g', 'EU_AF_1.5e-5',
+                                 '-g', 'AF_AS_0.78e-5',
+                                 '-g', 'AS_AF_0.79e-5',
+                                 '-g', 'EU_AS_3.11e-5',
                                  ])
-    return Demography_Models.Base_demography(1, 2, options)
+    return Demography_Models.Base_demography(options)
 
 
 def test_default_init(default):
     assert default.S_N1 == 2
-    assert default.S_N2 == 1
+    assert default.S_N2 == 2
     assert default.m_PULSE1 == 0.02
     assert default.m_PULSE2 == 0.0
 
@@ -69,8 +72,8 @@ def test_default_init(default):
 
 
 def test_nondefault_init(nonDefault):
-    assert nonDefault.S_N1 == 1
-    assert nonDefault.S_N2 == 2
+    assert nonDefault.S_N1 == 3
+    assert nonDefault.S_N2 == 1
     assert nonDefault.m_PULSE1 == 0.003
     assert nonDefault.m_PULSE2 == 0.001
 
@@ -170,8 +173,8 @@ def test_samples(default, nonDefault):
     samples = default.get_samples()
 
     curr = 0
-    gens = [50e3/25, 50e3/25, 0, 0, 0, 0, 50e3/25]
-    numSamps = [2, 1, 2, 1006, 1008, 2, 2]
+    gens = [55e3/25, 125e3/25, 0, 0, 0, 0, 50e3/25]
+    numSamps = [2, 2, 2, 1006, 1008, 2, 2]
     for j, n in enumerate(numSamps):
         for i in range(curr, curr + n):
             assert samples[i] == msprime.Sample(population=j, time=gens[j])
@@ -179,8 +182,8 @@ def test_samples(default, nonDefault):
 
     samples = nonDefault.get_samples()
     curr = 0
-    gens = [50e3/25, 50e3/25, 0, 0, 0, 0, 50e3/25]
-    numSamps = [1, 2, 3, 1007, 1007, 2, 2]
+    gens = [50e3/25, 120e3/25, 0, 0, 0, 0, 50e3/25]
+    numSamps = [3, 1, 3, 1007, 1007, 2, 2]
     for j, n in enumerate(numSamps):
         for i in range(curr, curr + n):
             assert samples[i] == msprime.Sample(population=j, time=gens[j])
@@ -188,6 +191,13 @@ def test_samples(default, nonDefault):
 
 
 def test_migration_matrix(default, nonDefault):
+    '''
+    NOTE ON ORDER
+    the names are retrieved from the migration dictionary as
+    COLUMN_ROW.  In the default, row 3, column 2 (2.5e-5) has
+    a key of AF_EU.  Keys are constant in second underscore
+    along a row
+    '''
     mm = default.get_migration_matrix()
     assert mm == \
         [[0,   0,  0,  0,  0,  0,  0],
@@ -202,8 +212,19 @@ def test_migration_matrix(default, nonDefault):
     assert mm == \
         [[0,   0,  0,  0,  0,  0,  0],
          [0,   0,  0,  0,  0,  0,  0],
-         [0,   0,  0,  2e-5,  0.7e-5,  0,  0],  # AF
-         [0,   0,  2e-5,  0,  3e-5,  0,  0],  # EU
-         [0,   0,  0.7e-5,  3e-5,  0,  0,  0],  # AS
+         [0,   0,  0,  1.5e-5,  0.79e-5,  0,  0],  # AF
+         [0,   0,  1.5e-5,  0,  3.11e-5,  0,  0],  # EU
+         [0,   0,  0.78e-5,  3.11e-5,  0,  0,  0],  # AS
          [0,   0,  0,  0,  0,  0,  0],
          [0,   0,  0,  0,  0,  0,  0]]
+
+
+def test_construction():
+    parser = AdmixtureOptionParser.admixture_option_parser()
+    options = parser.parse_args([])
+
+    Demography_Models.Tenn_no_modern_migration(options).simulate(1)
+    Demography_Models.Tenn_pulsed_migration(options).simulate(1)
+    Demography_Models.Sriram_demography(options).simulate(1)
+    Demography_Models.SplitPop_demography(options).simulate(1)
+    Demography_Models.Out_of_africa_demography(options).simulate(1)
