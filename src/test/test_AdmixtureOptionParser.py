@@ -16,7 +16,7 @@ def compare_options(options, nondefault={}):
                 'n2_admix_prop': 0.0,
                 's_n1': 2,
                 's_n2': 2,
-                't_n1_n2': 350,
+                't_n1_n2': 145,
                 't_n1_sample': 55,
                 't_n2_sample': 125,
                 'haplo': 'F4Dstat',

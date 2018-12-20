@@ -18,20 +18,22 @@ def main():
         # simulate with 1 replicate for haplo and vcf
         simulation = model.simulate(replicates=1)
 
-        tree_sequence = next(simulation)
+        if printer.single_simulation_needed():
+            tree_sequence = next(simulation)
 
-        printer.print_popfile(model, tree_sequence)
-        printer.print_vcf(tree_sequence)
+            if printer.vcf_needed():
+                printer.print_popfile(model, tree_sequence)
+                printer.print_vcf(tree_sequence)
 
-        if printer.haplo_needed():
-            haplotype_entry_list = get_haplo_entries(tree_sequence, options)
-            printer.print_haplo(haplotype_entry_list)
+            if printer.haplo_needed():
+                haplotype_entry_list = get_haplo_entries(tree_sequence, options)
+                printer.print_haplo(haplotype_entry_list)
 
-        if printer.ils_needed():
-            haplotype_entry_list = get_haplo_entries(tree_sequence,
-                                                     options,
-                                                     isILS=True)
-            printer.print_ils(haplotype_entry_list)
+            if printer.ils_needed():
+                haplotype_entry_list = get_haplo_entries(tree_sequence,
+                                                         options,
+                                                         isILS=True)
+                printer.print_ils(haplotype_entry_list)
 
         # simulate with 20 replicate for F4Dstat
         if printer.f4dstat_needed():
@@ -171,7 +173,7 @@ def get_human_samples(options):
 
         "nonAfr": range(non_trgt, non_af + non_trgt),
 
-        "AFR": range(neand, non_af),
+        "AFR": range(neand, non_trgt),
 
         "modHum": range(neand, non_af + non_trgt)
     }

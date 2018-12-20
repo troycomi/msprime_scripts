@@ -62,6 +62,7 @@ class file_printer(object):
         self.build_out_dir()
         self.build_debug(numset, print_all)
         self.build_haplo(print_all)
+        self.build_ils(print_all)
         self.build_option(print_all)
         self.build_vcf(print_all)
         self.build_f4dstat(print_all)
@@ -129,6 +130,14 @@ class file_printer(object):
                            {'haplo':
                             self.file_struct(
                                 self.get_filename('.bed.merged.gz'))},
+                           print_all,
+                           allow_stdout=True)
+
+    def build_ils(self, print_all):
+        self.build_generic('ils',
+                           {'ils':
+                            self.file_struct(
+                                self.get_filename('.ils.bed.merged.gz'))},
                            print_all,
                            allow_stdout=True)
 
@@ -247,6 +256,14 @@ class file_printer(object):
                     i//2,
                     long_names[tree_sequence.get_population(i)]))
 
+    def single_simulation_needed(self):
+        return self.vcf_needed() or \
+            self.haplo_needed() or \
+            self.ils_needed()
+
+    def vcf_needed(self):
+        return self.writers['vcf'] is not None
+
     def print_vcf(self, tree_sequence):
         writer = self.writers['vcf']
 
@@ -258,7 +275,6 @@ class file_printer(object):
             tempfile.seek(0)
 
             for line in tempfile.readlines():
-                print(line)
                 writer.write(str.encode(line))
 
     def haplo_needed(self):

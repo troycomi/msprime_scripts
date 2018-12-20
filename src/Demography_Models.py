@@ -58,9 +58,6 @@ class Base_demography(object):
         self.set_demographic_events()
 
     def simulate(self, replicates):
-        # replicates = 20 if self.options.haplo == "F4Dstat"\
-                        # else 1
-
         return msprime.simulate(
             Ne=self.N_A,
             length=self.length,
@@ -228,11 +225,11 @@ class Base_demography(object):
                 growth_rate=0,
                 population_id=ids['AS']),
 
-            # Neand2 to EAS pulse of introgression
+            # Neand1 to EAS pulse of introgression
             msprime.MassMigration(
                 time=self.T_PULSE2,
                 source=ids['AS'],
-                destination=ids['N2'],
+                destination=ids['N1'],
                 proportion=self.m_PULSE2),
 
             # set EU popsize at EU0
@@ -436,9 +433,10 @@ class Tenn_no_modern_migration(Tenn_demography):
     def set_demographic_events(self):
         """set the list of demographic events in self.events"""
         ids = self.get_population_map()
-        # NOTE: this may need to be initial migrations to match current version
-        # leaving as later as that is more logical
-        migrations = self.get_later_migrations()
+        # NOTE: this is initial migrations to match legacy code
+        # it is more logical to be later migrations.
+        # would also want to change migration assignment after B
+        migrations = self.get_initial_migrations()
 
         self.events = []
 
@@ -532,6 +530,7 @@ class Tenn_no_modern_migration(Tenn_demography):
         ]
 
         ids['B'] = ids['EU']
+        migrations = self.get_later_migrations()
 
         self.events += [
             # set all migration rates to zero
@@ -641,9 +640,10 @@ class Tenn_pulsed_migration(Tenn_demography):
         """set the list of demographic events in self.events"""
         ids = self.get_population_map()
 
-        # NOTE: this may need to be initial migrations to match current version
-        # leaving as later as that is more logical
-        migrations = self.get_later_migrations()
+        # NOTE: this is initial migrations to match legacy code
+        # it is more logical to be later migrations.
+        # would also want to change migration assignment after B
+        migrations = self.get_initial_migrations()
 
         self.events = []
 
@@ -746,6 +746,7 @@ class Tenn_pulsed_migration(Tenn_demography):
         ]
 
         ids['B'] = ids['EU']
+        migrations = self.get_later_migrations()
 
         self.events += [
             # set all migration rates to zero
@@ -1068,13 +1069,13 @@ class SplitPop_demography(Base_demography):
             Population(abbreviation='N1',
                        population_size=self.N_N1,
                        samples=self.S_N1,
-                       generations=50e3 / self.generation_time,
+                       generations=self.T_N1_SAMPLE,
                        long_name='Neand1'),
 
             Population(abbreviation='N2',
                        population_size=self.N_N2,
                        samples=self.S_N2,
-                       generations=50e3 / self.generation_time,
+                       generations=self.T_N2_SAMPLE,
                        long_name='Neand2'),
 
             Population(abbreviation='AF',
@@ -1191,12 +1192,12 @@ class SplitPop_demography(Base_demography):
             # migration between "B" and Africa begins
             msprime.MigrationRateChange(
                 time=self.T_EU_AS,
-                rate=migrations.get('B_AF', 0.0),
-                matrix_index=(ids['AF'], ids['B'])),
-            msprime.MigrationRateChange(
-                time=self.T_EU_AS,
                 rate=migrations.get('AF_B', 0.0),
                 matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0.0),
+                matrix_index=(ids['AF'], ids['B'])),
 
             # set parameters of population "B"
             msprime.PopulationParametersChange(
@@ -1417,3 +1418,7 @@ class Out_of_africa_demography(Base_demography):
                 initial_size=self.N_A,
                 population_id=ids['AF'])
         ]
+
+    def get_debug_configuration(self):
+        return [pop.get_debug_configuration(includeRate=True)
+                for pop in self.populations]

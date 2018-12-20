@@ -57,7 +57,7 @@ def test_default_init(default):
     assert default.T_MH_CH == 7e6 / 25
     assert default.T_MH_N == 700e3 / 25
     assert default.T_DE_N == 500e3 / 25
-    assert default.T_N1_N2 == ((350) * 1e3) / 25
+    assert default.T_N1_N2 == ((145) * 1e3) / 25
     assert default.T_AF == 148e3 / 25
     assert default.T_B == 100e3 / 25
     assert default.T_PULSE1 == 55e3 / 25

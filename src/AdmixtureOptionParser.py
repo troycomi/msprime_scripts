@@ -54,7 +54,7 @@ class admixture_option_parser(ArgumentParser):
         self.add_argument("-t", "--time_N1_N2_split",
                           type=int,
                           dest="t_n1_n2",
-                          default=350,
+                          default=145,
                           help="Set N1 N2 split time in kya; default=350")
 
         self.add_argument("--time_N1_sample",
@@ -103,7 +103,7 @@ class admixture_option_parser(ArgumentParser):
                                "argument is given will output to stdout. If "
                                "not flagged, output will be suppressed.")
 
-        self.add_argument("--option",
+        self.add_argument("--options",
                           dest="option_file",
                           nargs='?',
                           const='*',
