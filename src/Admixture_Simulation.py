@@ -1,7 +1,7 @@
 import sys
 import math
 import collections
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 from File_Printer import file_printer
 import Demography_Models
 
@@ -46,7 +46,7 @@ def get_model(options):
         "Tenn": Demography_Models.Tenn_demography(options),
         "Sriram": Demography_Models.Sriram_demography(options),
         "SplitPop": Demography_Models.SplitPop_demography(options),
-        "test": Demography_Models.Out_of_africa_demography(options),
+        "OutOfAfr": Demography_Models.Out_of_africa_demography(options),
         "Tenn_nomod": Demography_Models.Tenn_no_modern_migration(options),
         "Tenn_pulsed": Demography_Models.Tenn_pulsed_migration(options),
     }

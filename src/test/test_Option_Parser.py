@@ -1,11 +1,11 @@
 import pytest
-import AdmixtureOptionParser
+import Option_Parser
 from argparse import ArgumentError
 
 
 @pytest.fixture
 def parser():
-    return AdmixtureOptionParser.admixture_option_parser()
+    return Option_Parser.admixture_option_parser()
 
 
 def compare_options(options, nondefault={}):
@@ -54,8 +54,8 @@ def test_defaults(parser):
 def test_single_changes(parser):
     options = parser.parse_args(['-p', 'EUR'])
     compare_options(options, {'pop': 'EUR'})
-    options = parser.parse_args(['-m', 'OUTPUT'])
-    compare_options(options, {'model': 'OUTPUT'})
+    options = parser.parse_args(['-m', 'Sriram'])
+    compare_options(options, {'model': 'Sriram'})
     options = parser.parse_args(['-s', '0'])
     compare_options(options, {'seed': 0})
     options = parser.parse_args(['-n', '0.003'])
@@ -170,5 +170,7 @@ def test_type_error(parser):
         parser.parse_args(['-r', 'string'])
     with pytest.raises(ArgumentError):
         parser.parse_args(['--vcf'])
+    with pytest.raises(ArgumentError):
+        parser.parse_args(['--model', 'NONE'])
     with pytest.raises(ArgumentError):
         parser.parse_args(['--f4dstat'])

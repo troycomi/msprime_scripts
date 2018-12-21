@@ -18,7 +18,7 @@ install:
 
 script:
     cd src
-    pytest --cov=./
+    pytest --cov=src/ --cov-config src/.coveragerc
 
 after_success:
   - codecov

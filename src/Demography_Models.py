@@ -1310,6 +1310,8 @@ class SplitPop_demography(Base_demography):
 
 
 class Out_of_africa_demography(Base_demography):
+    def simulate(self, replicates):
+        raise NotImplementedError
     def set_constants(self):
         Base_demography.set_constants(self)
 

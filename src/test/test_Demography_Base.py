@@ -1,19 +1,19 @@
 import pytest
-import AdmixtureOptionParser
+import Option_Parser
 import Demography_Models
 import msprime
 
 
 @pytest.fixture
 def default():
-    parser = AdmixtureOptionParser.admixture_option_parser()
+    parser = Option_Parser.admixture_option_parser()
     options = parser.parse_args([])
     return Demography_Models.Base_demography(options)
 
 
 @pytest.fixture
 def nonDefault():
-    parser = AdmixtureOptionParser.admixture_option_parser()
+    parser = Option_Parser.admixture_option_parser()
     options = parser.parse_args(['-s', '4',
                                  '-n', '0.003',
                                  '-d', '0.001',
@@ -220,11 +220,11 @@ def test_migration_matrix(default, nonDefault):
 
 
 def test_construction():
-    parser = AdmixtureOptionParser.admixture_option_parser()
+    parser = Option_Parser.admixture_option_parser()
     options = parser.parse_args([])
 
     Demography_Models.Tenn_no_modern_migration(options).simulate(1)
     Demography_Models.Tenn_pulsed_migration(options).simulate(1)
     Demography_Models.Sriram_demography(options).simulate(1)
     Demography_Models.SplitPop_demography(options).simulate(1)
-    Demography_Models.Out_of_africa_demography(options).simulate(1)
+    Demography_Models.Out_of_africa_demography(options)

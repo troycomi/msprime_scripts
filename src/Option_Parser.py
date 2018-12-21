@@ -10,6 +10,7 @@ class admixture_option_parser(ArgumentParser):
         self.add_argument("-p", "--population",
                           dest="pop",
                           default="nonAfr",
+                          choices=['EAS', 'EUR', 'nonAfr', 'AFR', 'modHum'],
                           help="call introg_haplotypes in AFR, EUR, EAS, "
                                "nonAfr, or all modern humans; "
                                "default=nonAfr")
@@ -17,6 +18,8 @@ class admixture_option_parser(ArgumentParser):
         self.add_argument("-m", "--model",
                           dest="model",
                           default="Tenn",
+                          choices=['Tenn', 'Sriram', 'SplitPop', 'OutOfAFR',
+                                   'Tenn_nomod', 'Tenn_pulsed'],
                           help="specify which demographic model to use by "
                                "name; default=Tenn")
 
@@ -71,7 +74,54 @@ class admixture_option_parser(ArgumentParser):
                           help="set N2 (Altai) sample time in kya; "
                                "default=125")
 
-        # Note for the following 3 options:
+        self.add_argument("-l", "--length_chromosome",
+                          type=float,
+                          dest="length",
+                          default=1e6,
+                          help="Define length of simulated chromosome ; "
+                               "default=1e6")
+
+        self.add_argument("-e", "--european_sample_size",
+                          type=int,
+                          dest="EU_sample_size",
+                          default=1006,
+                          help="Set EU haploid sample size ; default=1006")
+
+        self.add_argument("-a", "--asian_sample_size",
+                          type=int,
+                          dest="AS_sample_size",
+                          default=1008,
+                          help="Set AS haploid sample size ; default=1008")
+
+        self.add_argument("-r", "--reference_sample_size",
+                          type=int,
+                          dest="AF_sample_size",
+                          default=2,
+                          help="Set AF haploid sample size ; default=2")
+
+        self.add_argument("-g", "--initial-migration",
+                          dest="initial_migrations",
+                          action='append',
+                          help="Add one or more migration values to initial "
+                               "migration matrix, input as POP1_POP2_## to "
+                               "set migration from POP1 to POP1 as ## "
+                               "(e.g. AF_EU_15e-5 sets migration from "
+                               "AF to EU as 15e-5) ;"
+                               "default as symmetric migrations of "
+                               "AF_EU_2.5e-5, AF_AS_0.78e-5, EU_AS_3.11e-5. "
+                               "Setting a value overwrites only that default. "
+                               "Only the last repeated population is retained")
+
+        self.add_argument("-G", "--later-migration",
+                          dest="later_migrations",
+                          action='append',
+                          help="Add one or more migration values to "
+                               "migrations occuring during demographic "
+                               "events. Same format as initial migrations ;"
+                               "default symmetric migration of AF_B_15e-5. "
+                               "Setting a value overwrites only that default.")
+
+        # Note for the following 4 options:
         # If the flag is not set at all, variable will be None
         # If the flag is set without an argument,
         # variable will be '*' (non valid filename)
@@ -136,53 +186,6 @@ class admixture_option_parser(ArgumentParser):
                                "other output options, all "
                                "output files are generated into the specified "
                                "directory using legacy formatting.")
-
-        self.add_argument("-l", "--length_chromosome",
-                          type=float,
-                          dest="length",
-                          default=1e6,
-                          help="Define length of simulated chromosome ; "
-                               "default=1e6")
-
-        self.add_argument("-e", "--european_sample_size",
-                          type=int,
-                          dest="EU_sample_size",
-                          default=1006,
-                          help="Set EU haploid sample size ; default=1006")
-
-        self.add_argument("-a", "--asian_sample_size",
-                          type=int,
-                          dest="AS_sample_size",
-                          default=1008,
-                          help="Set AS haploid sample size ; default=1008")
-
-        self.add_argument("-r", "--reference_sample_size",
-                          type=int,
-                          dest="AF_sample_size",
-                          default=2,
-                          help="Set AF haploid sample size ; default=2")
-
-        self.add_argument("-g", "--initial-migration",
-                          dest="initial_migrations",
-                          action='append',
-                          help="Add one or more migration values to initial "
-                               "migration matrix, input as POP1_POP2_## to "
-                               "set migration from POP1 to POP1 as ## "
-                               "(e.g. AF_EU_15e-5 sets migration from "
-                               "AF to EU as 15e-5) ;"
-                               "default as symmetric migrations of "
-                               "AF_EU_2.5e-5, AF_AS_0.78e-5, EU_AS_3.11e-5. "
-                               "Setting a value overwrites only that default. "
-                               "Only the last repeated population is retained.")
-
-        self.add_argument("-G", "--later-migration",
-                          dest="later_migrations",
-                          action='append',
-                          help="Add one or more migration values to "
-                               "migrations occuring during demographic "
-                               "events. Same format as initial migrations ;"
-                               "default symmetric migration of AF_B_15e-5. "
-                               "Setting a value overwrites only that default.")
 
     def parse_args(self, args=None, namespace=None):
         options = ArgumentParser.parse_args(self, args, namespace)

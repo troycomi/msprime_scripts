@@ -1,4 +1,4 @@
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 from File_Printer import file_printer
 import pytest
 import os

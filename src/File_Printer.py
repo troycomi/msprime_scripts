@@ -3,7 +3,7 @@ import io
 import gzip
 import os.path
 import pybedtools
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 
 
 def get_basename(file):
