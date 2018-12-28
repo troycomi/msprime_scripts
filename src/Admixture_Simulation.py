@@ -119,7 +119,7 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
 def get_haplo_entries(tree_sequence, options, isILS=False):
     human_samples = get_human_samples(options)
 
-    haplo_entry_list = []
+    haplo_entries = {}
     node_map = collections.defaultdict(list)
     # fill node_map with records from tree
     for record in tree_sequence.records():
@@ -148,11 +148,55 @@ def get_haplo_entries(tree_sequence, options, isILS=False):
             for sample in samples:
                 if sample in human_samples and \
                         math.ceil(left) < math.ceil(right):
-                    haplo_entry_list.append(
-                        (str(sample), math.ceil(left),
-                         math.ceil(right)))
+                    merge_dict(haplo_entries,
+                               (str(sample), math.ceil(left),
+                                math.ceil(right)))
 
-    return haplo_entry_list
+    return haplo_entries
+
+
+def merge_dict(haplo_dict, new_entry):
+    # add a new entry to dictionary, which is a list of start and end lists
+    # lists are sorted by start position and overlap is merged
+    key, start, end = new_entry
+
+    if key not in haplo_dict:
+        haplo_dict[key] = [[start], [end]]
+        return
+
+    # iterate for testing equality with old method
+    starts = haplo_dict[key][0]
+    ends = haplo_dict[key][1]
+
+    for i in range(len(starts)):
+        if start > ends[i]:
+            continue
+        if end < starts[i]:
+            starts.insert(i, start)
+            ends.insert(i, end)
+            return
+        starts[i] = min(starts[i], start)
+        if end < ends[i]:
+            return
+        if i == len(starts)-1 or end < starts[i+1]:
+            ends[i] = end
+            return
+        # need to see how far the end goes
+        j = i+1
+        while j < len(starts) and end >= starts[j]:
+            if end <= ends[j]:
+                del starts[j]
+                del ends[i]
+                return
+            else:
+                del starts[j]
+                del ends[j]
+        ends[i] = end
+        return
+
+    starts.append(start)
+    ends.append(end)
+    return
 
 
 def get_human_samples(options):

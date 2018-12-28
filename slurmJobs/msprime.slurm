@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --mem=20G
+#SBATCH --mem=2G
 #SBATCH --time 0-1
 #SBATCH --error=%x_%A_%a.out
 #SBATCH --output=%x_%A_%a.out
@@ -28,7 +28,7 @@ for (( ind=$START; ind<$END; ind++)); do
         $BASE_OPTIONS \
         ${SWEEP_ARR[$ind]} \
         -s ${SEED:-$RANDOM} \
-        --f4dstat "stat$fname"
+        --haplo "haplo$fname.gz"
 
 done
 date
