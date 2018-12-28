@@ -1,5 +1,4 @@
 import sys
-import io
 import gzip
 import os.path
 import pybedtools
@@ -78,7 +77,7 @@ class file_printer(object):
     def build_out_dir(self):
         if self.out_dir is not None:
             if not os.path.exists(self.out_dir):
-                os.mkdir(self.out_dir)
+                os.makedirs(self.out_dir, exist_ok=True)
         else:
             self.out_dir = os.getcwd()
 
@@ -208,8 +207,10 @@ class file_printer(object):
             elif filename == sys.stdout:
                 writer = sys.stdout
             else:
-                if os.path.splitext(filename)[1] == '.gz':
+                if key == 'eigen':
                     writer = gzip.open(filename, 'wb')
+                elif os.path.splitext(filename)[1] == '.gz':
+                    writer = gzip.open(filename, 'wt')
                 else:
                     writer = open(filename, 'w')
 
@@ -270,12 +271,7 @@ class file_printer(object):
         if writer is None:
             return
 
-        with io.StringIO() as tempfile:
-            tree_sequence.write_vcf(tempfile, 2)
-            tempfile.seek(0)
-
-            for line in tempfile.readlines():
-                writer.write(str.encode(line))
+        tree_sequence.write_vcf(writer, 2)
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None
@@ -296,20 +292,21 @@ class file_printer(object):
             return
 
         # NOTE: After printing to a bed file, still need to sort and merge
-        haplo_entry_string = '\n'.join(haplo_entry_list)
         pybedtools.set_tempdir('/scratch/')
-        bedfile = pybedtools.BedTool(haplo_entry_string, from_string=True)
-        bedfile_sorted_merged = pybedtools.BedTool.sort(bedfile).merge()
+        bedfile = pybedtools.BedTool(haplo_entry_list)\
+            .sort()\
+            .merge(stream=True)
 
         # Read the BEDfile line by line, add in the chr#,
-        # reorder so that the columns are: chr, strt, end, ind
-        for bed_line in bedfile_sorted_merged:
-            new_bed_line = '{}\t{}'.format(
-                str(bed_line).strip(),
-                self.options.seed)
-            new_bed_line = new_bed_line.split('\t')
-            new_bed_line[0], new_bed_line[3] = new_bed_line[3], new_bed_line[0]
-            writer.write(str.encode('\t'.join(new_bed_line)+'\n'))
+        for bed_line in bedfile:
+            new_bed_line = str(bed_line).strip().split('\t')
+            writer.write(
+                '{}\t{}\t{}\t{}\n'.format(
+                    self.options.seed,
+                    new_bed_line[1],
+                    new_bed_line[2],
+                    new_bed_line[0],
+                ))
 
         pybedtools.cleanup(verbose=False)
 
@@ -328,16 +325,16 @@ class file_printer(object):
             return
 
         writer.write(
-            str.encode('genotypename: {}\n'.format(
-                get_basename(self.files['eigen']))))
+            'genotypename: {}\n'.format(
+                get_basename(self.files['eigen'])))
 
         writer.write(
-            str.encode('snpname: {}\n'.format(
-                get_basename(self.files['snp']))))
+            'snpname: {}\n'.format(
+                get_basename(self.files['snp'])))
 
         writer.write(
-            str.encode('indivname: {}\n'.format(
-                get_basename(self.files['ind']))))
+            'indivname: {}\n'.format(
+                get_basename(self.files['ind'])))
 
         writer.write(
-            str.encode('popfilename: sim.popfile_F4stat'+'\n'))
+            'popfilename: sim.popfile_F4stat'+'\n')

@@ -15,11 +15,10 @@ def main():
     -a 2 -b 2
     '''
 
-    args = get_arguments()
-    print(args)
-    args = get_permutations(args)
+    args, formats = get_arguments()
+    args = get_permutations(args, formats)
     for arg in args:
-        print(arg)
+        print('{}'.format(arg))
 
 
 def get_arguments(args=None):
@@ -29,7 +28,9 @@ def get_arguments(args=None):
                         action='append',
                         nargs='+',
                         help="provide parameter name and list of values "
-                        "as PARAM;range,range.")
+                        "as PARAM;range,range;FORMAT. FORMAT is any valid "
+                        "format notation, e.g ':.2f' or ':.2e'. Default is "
+                        "no added formatting, taken for the first argument")
     options = parser.parse_args(args)
 
     if options.params is None:
@@ -37,9 +38,13 @@ def get_arguments(args=None):
         raise ValueError("No arguments provided!")
 
     result = {}
+    formats = {}
     for param in options.params:
         param = param[0]  # weird argument parser thing
-        key, args = param.split(';')
+        # if fmt is not provided it defaults to empty string
+        key, args, *fmt = param.split(';')
+        fmt = fmt[0] if fmt else ''
+
         values = []
         for arg in args.split(','):
             rangeVals = arg.split(':')
@@ -72,23 +77,25 @@ def get_arguments(args=None):
                                   endpoint=True).tolist()
 
         if key not in result:
+            formats[key] = fmt
             result[key] = []
 
         result[key] += values
 
-    return result
+    return result, formats
 
 
-def get_permutations(values):
+def get_permutations(values, formats):
     result = []
 
-    for flag, args in values.items():
-        if len(flag) > 1:
-            flag = '--' + flag
+    for key, args in values.items():
+        if len(key) > 1:
+            flag = '--' + key
         else:
-            flag = '-' + flag
+            flag = '-' + key
 
-        line_args = ['{} {}'.format(flag, arg) for arg in args]
+        line_args = [('{} {' + formats[key] + '}')
+                     .format(flag, arg) for arg in args]
 
         if len(result) == 0:
             result = line_args

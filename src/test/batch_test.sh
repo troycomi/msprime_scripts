@@ -4,21 +4,21 @@ module load anaconda3
 conda activate msprime_scripts
 
 set -e
-len=1e5
 
-for mod in Tenn Sriram SplitPop Tenn_nomod Tenn_pulsed
+for len in 1e5 1e6
 do
-    for pop in EAS EUR nonAfr AFR modHum
+    for mod in Tenn Sriram SplitPop Tenn_nomod Tenn_pulsed
     do
-        echo using model $mod with population $pop
-        ./get_samples.sh $mod $pop $len &
-        cd ../../../old_v/msprime_scripts
-        ./get_samples.sh $mod $pop $len &
-        cd - > /dev/null
-        wait
+        for pop in EAS EUR nonAfr AFR modHum
+        do
+            if [[ ! -d version_2/${len}_${pop}_${mod} ]]; then
+                echo using model $mod with population $pop
+                ./get_samples.sh $mod $pop $len
 
-        ./comp_samples.sh $mod $pop
-        echo no diffs...
+                ./comp_samples.sh $mod $pop $len
+                echo no diffs...
+            fi
+        done
     done
 done
 echo done

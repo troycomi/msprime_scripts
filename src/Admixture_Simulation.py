@@ -11,14 +11,11 @@ def main():
     model = get_model(options)
 
     with file_printer(options) as printer:
-
         printer.print_options()
         printer.print_debug(model)
 
-        # simulate with 1 replicate for haplo and vcf
-        simulation = model.simulate(replicates=1)
-
         if printer.single_simulation_needed():
+            simulation = model.simulate(replicates=1)
             tree_sequence = next(simulation)
 
             if printer.vcf_needed():
@@ -26,7 +23,8 @@ def main():
                 printer.print_vcf(tree_sequence)
 
             if printer.haplo_needed():
-                haplotype_entry_list = get_haplo_entries(tree_sequence, options)
+                haplotype_entry_list = get_haplo_entries(tree_sequence,
+                                                         options)
                 printer.print_haplo(haplotype_entry_list)
 
             if printer.ils_needed():
@@ -119,11 +117,10 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
 
 
 def get_haplo_entries(tree_sequence, options, isILS=False):
-    haplo_entry_list = []
     human_samples = get_human_samples(options)
 
+    haplo_entry_list = []
     node_map = collections.defaultdict(list)
-
     # fill node_map with records from tree
     for record in tree_sequence.records():
         if isILS:
@@ -143,19 +140,17 @@ def get_haplo_entries(tree_sequence, options, isILS=False):
         iterator = introgressed_samples_fn(
             tree_sequence,
             neanderthal_mrca,
-            range(0, options.s_n1 + options.s_n2),
+            list(range(0, options.s_n1 + options.s_n2)),
             segments,
             isILS)
 
         for left, right, samples in iterator:
-            for s in samples:
-                if s in human_samples and \
+            for sample in samples:
+                if sample in human_samples and \
                         math.ceil(left) < math.ceil(right):
                     haplo_entry_list.append(
-                        '{0}\t{1:.0f}\t{2:.0f}\t{0}'.format(
-                            s,
-                            math.ceil(left),
-                            math.ceil(right)))
+                        (str(sample), math.ceil(left),
+                         math.ceil(right)))
 
     return haplo_entry_list
 
@@ -203,7 +198,7 @@ def write_f4dstats(simulation, printer, model):
 
                 printer.write_to(
                     'ind',
-                    str.encode('Sample_{}\tU\t{}\n'.format(i, pop)))
+                    'Sample_{}\tU\t{}\n'.format(i, pop))
 
         #  WRITE THE .EIGENSTRATGENO AND .SNP FILES  ###
         chr_num = t+1
@@ -211,17 +206,16 @@ def write_f4dstats(simulation, printer, model):
             rs_num += 1
 
             # write genotypes to .eigenstratgeno file
-            printer.write_to('eigen', variant.genotypes+b'\n')
+            printer.write_to('eigen', variant.genotypes + b'\n')
 
             # write snp_allele info to .snp file
             printer.write_to(
                 'snp',
-                str.encode(
-                    'rs{rs}\t{chr}\t{loc}\t{pos}\tA\tT\n'.format(
-                        rs=rs_num,
-                        chr=chr_num,
-                        loc=variant.position / options.length,
-                        pos=int(variant.position))))
+                'rs{rs}\t{chr}\t{loc}\t{pos}\tA\tT\n'.format(
+                    rs=rs_num,
+                    chr=chr_num,
+                    loc=variant.position / options.length,
+                    pos=int(variant.position)))
 
     printer.print_f4dstat()
 

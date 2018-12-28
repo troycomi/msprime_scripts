@@ -52,6 +52,11 @@ def test_get_permutations():
     assert args == ['-a 0.0', '-a 1.0', '-a 2.0']
 
     args = Parameter_Sweeper.get_arguments(
+        ['-p', 'test;0:1:2'])
+    args = Parameter_Sweeper.get_permutations(args)
+    assert args == ['--test 0.0', '--test 1.0', '--test 2.0']
+
+    args = Parameter_Sweeper.get_arguments(
         ['-p', 'a;0:1:2', '-p', 'b;1'])
     args = Parameter_Sweeper.get_permutations(args)
     assert args == ['-a 0.0 -b 1.0', '-a 1.0 -b 1.0', '-a 2.0 -b 1.0']
