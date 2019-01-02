@@ -14,8 +14,6 @@ conda activate msprime_scripts
 
 readarray -t SWEEP_ARR <<<"$SWEEP_OPTIONS"
 
-#TODO: check with little memory?
-#TODO: check for existing outputs to limit submission?
 START=$(($SLURM_ARRAY_TASK_ID * $BATCH_SIZE))
 END=$(($START + $BATCH_SIZE))
 END=$(($END < ${#SWEEP_ARR[@]} ? $END : ${#SWEEP_ARR[@]}))

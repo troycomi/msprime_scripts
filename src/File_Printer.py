@@ -22,7 +22,7 @@ class file_printer(object):
         self.files['debug'] = options.debug_file
         self.files['haplo'] = options.haplo_file
         self.files['ils'] = options.ils_file
-        self.files['option'] = options.option_file
+        self.files['options'] = options.option_file
         self.files['vcf'] = options.vcf_file
         self.files['f4dstat'] = options.f4dstat_file
         self.out_dir = options.out_dir
@@ -141,8 +141,8 @@ class file_printer(object):
                            allow_stdout=True)
 
     def build_option(self, print_all):
-        self.build_generic('option',
-                           {'option': self.file_struct('options.txt')},
+        self.build_generic('options',
+                           {'options': self.file_struct('options.txt')},
                            print_all,
                            allow_stdout=True)
 
@@ -222,7 +222,7 @@ class file_printer(object):
                 writer.close()
 
     def print_options(self):
-        writer = self.writers['option']
+        writer = self.writers['options']
 
         if writer is not None:
             writer.write("Options\n")

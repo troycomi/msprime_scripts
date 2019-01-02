@@ -36,6 +36,7 @@ def compare_options(options, nondefault={}):
                 'vcf_file': None,
                 'f4dstat_file': None,
                 'option_file': None,
+                'default_options': None,
                 'out_dir': None,
                 }
 
@@ -69,7 +70,7 @@ def test_single_changes(parser):
     compare_options(options, {'debug_file': '*'})
     options = parser.parse_args(['--haplo'])
     compare_options(options, {'haplo_file': '*'})
-    options = parser.parse_args(['--option'])
+    options = parser.parse_args(['--options'])
     compare_options(options, {'option_file': '*'})
 
     options = parser.parse_args(['--debug', 'test debug'])
@@ -80,7 +81,7 @@ def test_single_changes(parser):
     compare_options(options, {'vcf_file': 'test vcf'})
     options = parser.parse_args(['--f4dstat', 'test f4'])
     compare_options(options, {'f4dstat_file': 'test f4'})
-    options = parser.parse_args(['--option', 'test option'])
+    options = parser.parse_args(['--options', 'test option'])
     compare_options(options, {'option_file': 'test option'})
     options = parser.parse_args(['--out-dir', 'test dir'])
     compare_options(options, {'out_dir': 'test dir'})
