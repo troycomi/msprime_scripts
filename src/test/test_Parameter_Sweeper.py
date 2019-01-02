@@ -46,22 +46,22 @@ def test_get_arguments_invalid():
 
 
 def test_get_permutations():
-    args, fmts = Parameter_Sweeper.get_arguments(
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
         ['-p', 'a;0:1:2'])
     args = Parameter_Sweeper.get_permutations(args, fmts)
     assert args == ['-a 0.0', '-a 1.0', '-a 2.0']
 
-    args, fmts = Parameter_Sweeper.get_arguments(
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
         ['-p', 'test;0:1:2'])
     args = Parameter_Sweeper.get_permutations(args, fmts)
     assert args == ['--test 0.0', '--test 1.0', '--test 2.0']
 
-    args, fmts = Parameter_Sweeper.get_arguments(
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
         ['-p', 'a;0:1:2', '-p', 'b;1'])
     args = Parameter_Sweeper.get_permutations(args, fmts)
     assert args == ['-a 0.0 -b 1.0', '-a 1.0 -b 1.0', '-a 2.0 -b 1.0']
 
-    args, fmts = Parameter_Sweeper.get_arguments(
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
         ['-p', 'a;0:1:2', '-p', 'b;1', '-p' 'c;2,3'])
     args = Parameter_Sweeper.get_permutations(args, fmts)
     assert args == [
@@ -71,3 +71,18 @@ def test_get_permutations():
         '-a 1.0 -b 1.0 -c 3.0',
         '-a 2.0 -b 1.0 -c 2.0',
         '-a 2.0 -b 1.0 -c 3.0']
+
+
+def test_replicates():
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
+        ['-p', 'a;0,2', '-r', '3'])
+    args = Parameter_Sweeper.get_permutations(args, fmts, replicates)
+    assert args == ['-a 0.0', '-a 2.0'] * 3
+
+    args, fmts, replicates = Parameter_Sweeper.get_arguments(
+        ['-p', 'a;0,2', '-p', 'b;0', '-r', '2'])
+    args = Parameter_Sweeper.get_permutations(args, fmts, replicates)
+    assert args == ['-a 0.0 -b 0.0',
+                    '-a 2.0 -b 0.0',
+                    '-a 0.0 -b 0.0',
+                    '-a 2.0 -b 0.0']

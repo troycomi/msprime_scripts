@@ -15,8 +15,8 @@ def main():
     -a 2 -b 2
     '''
 
-    args, formats = get_arguments()
-    args = get_permutations(args, formats)
+    args, formats, replicates = get_arguments()
+    args = get_permutations(args, formats, replicates)
     for arg in args:
         print('{}'.format(arg))
 
@@ -31,6 +31,12 @@ def get_arguments(args=None):
                         "as PARAM;range,range;FORMAT. FORMAT is any valid "
                         "format notation, e.g ':.2f' or ':.2e'. Default is "
                         "no added formatting, taken for the first argument")
+    parser.add_argument("-r", "--replicates",
+                        dest="replicates",
+                        default=1,
+                        type=int,
+                        help="number of replicates to provide for each "
+                        "permutation.  Default is 1")
     options = parser.parse_args(args)
 
     if options.params is None:
@@ -82,10 +88,10 @@ def get_arguments(args=None):
 
         result[key] += values
 
-    return result, formats
+    return result, formats, options.replicates
 
 
-def get_permutations(values, formats):
+def get_permutations(values, formats, replicates=1):
     result = []
 
     for key, args in values.items():
@@ -98,7 +104,7 @@ def get_permutations(values, formats):
                      .format(flag, arg) for arg in args]
 
         if len(result) == 0:
-            result = line_args
+            result = line_args * replicates
         else:
             result = ['{} {}'.format(prod[0], prod[1]) for
                       prod in itertools.product(result, line_args)]

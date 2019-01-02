@@ -300,26 +300,6 @@ class file_printer(object):
                     end,
                     k))
 
-
-        # # NOTE: After printing to a bed file, still need to sort and merge
-        # pybedtools.set_tempdir('/scratch/')
-        # bedfile = pybedtools.BedTool(haplo_entry_list)\
-        #     .sort()\
-        #     .merge(stream=True)
-
-        # # Read the BEDfile line by line, add in the chr#,
-        # for bed_line in bedfile:
-        #     new_bed_line = str(bed_line).strip().split('\t')
-        #     writer.write(
-        #         '{}\t{}\t{}\t{}\n'.format(
-        #             self.options.seed,
-        #             new_bed_line[1],
-        #             new_bed_line[2],
-        #             new_bed_line[0],
-        #         ))
-
-        # pybedtools.cleanup(verbose=False)
-
     def f4dstat_needed(self):
         return self.writers['f4dstat'] is not None
 

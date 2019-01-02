@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --mem=2G
+#SBATCH --mem=1G
 #SBATCH --time 0-1
 #SBATCH --error=%x_%A_%a.out
 #SBATCH --output=%x_%A_%a.out
