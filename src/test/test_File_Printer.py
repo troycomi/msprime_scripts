@@ -234,7 +234,6 @@ def test_build_vcf(tmp_path):
     fp = file_printer(opts)
     fp.build_files()
     assert fp.files['vcf'] is None
-    assert fp.files['popfile'] is None
 
     opts = admixture_option_parser().parse_args(
         ['--out-dir', str(tmp_path)])
@@ -242,8 +241,6 @@ def test_build_vcf(tmp_path):
     fp.build_files()
     assert fp.files['vcf'] == os.path.join(
         str(tmp_path), fp.get_filename('.vcf.gz'))
-    assert fp.files['popfile'] == os.path.join(
-        str(tmp_path), fp.get_filename('.popfile'))
 
     opts = admixture_option_parser().parse_args(
         ['--vcf', 'test'])
@@ -251,8 +248,6 @@ def test_build_vcf(tmp_path):
     fp.build_files()
     assert fp.files['vcf'] == \
         os.path.join(os.getcwd(), 'test.vcf.gz')
-    assert fp.files['popfile'] == \
-        os.path.join(os.getcwd(), 'test.popfile')
 
     opts = admixture_option_parser().parse_args(
         ['--vcf', 'test', '--out-dir', str(tmp_path)])
@@ -260,6 +255,32 @@ def test_build_vcf(tmp_path):
     fp.build_files()
     assert fp.files['vcf'] == \
         os.path.join(str(tmp_path), 'test.vcf.gz')
+
+
+def test_build_popfile(tmp_path):
+    opts = admixture_option_parser().parse_args([])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['popfile'] is None
+
+    opts = admixture_option_parser().parse_args(
+        ['--out-dir', str(tmp_path)])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['popfile'] == os.path.join(
+        str(tmp_path), fp.get_filename('.popfile'))
+
+    opts = admixture_option_parser().parse_args(
+        ['--popfile', 'test'])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['popfile'] == \
+        os.path.join(os.getcwd(), 'test.popfile')
+
+    opts = admixture_option_parser().parse_args(
+        ['--popfile', 'test', '--out-dir', str(tmp_path)])
+    fp = file_printer(opts)
+    fp.build_files()
     assert fp.files['popfile'] == \
         os.path.join(str(tmp_path), 'test.popfile')
 

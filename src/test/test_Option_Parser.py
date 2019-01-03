@@ -34,6 +34,7 @@ def compare_options(options, nondefault={}):
                 'haplo_file': None,
                 'ils_file': None,
                 'vcf_file': None,
+                'popfile_file': None,
                 'f4dstat_file': None,
                 'option_file': None,
                 'default_options': None,
