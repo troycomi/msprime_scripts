@@ -1,0 +1,42 @@
+# Snakefile to replace the workflow of https://github.com/abwolf/examples
+configfile: "config.yaml"
+
+import random
+import os
+
+random.seed(1)
+seeds = random.sample(range(1, 20000), 5)
+
+rule all:
+    input:
+        expand(os.path.join(config['null_directory'],
+                            '{seed}.vcf.gz'), seed=seeds)
+
+rule clean:
+    shell:
+        'rm -rf {config[null_directory]}'
+        'rm slurm_out/*'
+
+# TODO: make popfile separate from vcf (only need one per sim)
+# make vcf temporary?
+# add in next step of processing
+rule generate_null_vcf:
+    output: 
+        os.path.join(config['null_directory'],
+                     '{seed}.vcf.gz')
+
+    params:
+        msprime_base_params='-m Sriram -l 1e6 -n 0 -d 0 '
+                            '-g AF_EU_0 -g EU_AF_0 -g EU_AS_0 '
+                            '-g AS_EU_0 -g AF_AS_0 -g AS_AF_0 '
+                            '-G AF_B_0 -G B_AF_0'
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {config[msprime_script]} '
+            '{params[msprime_base_params]} '
+            '-s {wildcards.seed} '
+            '--vcf {wildcards.seed} ' 
+            '--out-dir {config[null_directory]}'

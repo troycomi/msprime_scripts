@@ -1,0 +1,8 @@
+__default__:
+    "n": 1
+    "memory": '1G'
+    "time": '0-1'
+    "jobname": 'snake'
+
+generate_null_vcf:
+    "jobname": 'null'
