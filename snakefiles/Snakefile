@@ -5,38 +5,144 @@ import random
 import os
 
 random.seed(1)
-seeds = random.sample(range(1, 20000), 5)
+null_seeds = random.sample(range(1, 1<<16), config['null_simulations'])
+random.seed(2)
+admixed_seeds = random.sample(range(1, 1<<16), config['admixed_simulations'])
+
+msprime_base = config['msprime_base_params'] \
+                + ' -m {}'.format(config['model']) \
+                + ' -l {}'.format(config['length'])
+int_length = int(float(config['length']))
+
+null_directory = os.path.join(config['base_output_directory'], 'null')
+admixed_directory = os.path.join(config['base_output_directory'],
+                                 config['admixed_dir'])
 
 rule all:
     input:
-        expand(os.path.join(config['null_directory'],
-                            '{seed}.vcf.gz'), seed=seeds)
+        expand(os.path.join(null_directory,
+                            'RegionFiles',
+                            '{seed}.windowcalc.gz'),
+               seed=null_seeds),
+        os.path.join(null_directory, config['model'] + ".chr_list"),
+
+        expand(os.path.join(admixed_directory,
+                            'RegionFiles',
+                            '{seed}.windowcalc.gz'),
+               seed=admixed_seeds),
+        os.path.join(admixed_directory, config['model'] + ".chr_list")
 
 rule clean:
     shell:
-        'rm -rf {config[null_directory]}'
-        'rm slurm_out/*'
+        'rm -rf {null_directory} || echo no null files\n'
+        'rm -rf {admixed_directory} || echo no admixed files\n'
+        'rm slurm_out/* || echo no slurm output'
 
-# TODO: make popfile separate from vcf (only need one per sim)
-# make vcf temporary?
-# add in next step of processing
-rule generate_null_vcf:
-    output: 
-        os.path.join(config['null_directory'],
-                     '{seed}.vcf.gz')
+rule make_chr_list:
+    output:
+        os.path.join('{directory}', config['model'] + ".chr_list")
 
-    params:
-        msprime_base_params='-m Sriram -l 1e6 -n 0 -d 0 '
-                            '-g AF_EU_0 -g EU_AF_0 -g EU_AS_0 '
-                            '-g AS_EU_0 -g AF_AS_0 -g AS_AF_0 '
-                            '-G AF_B_0 -G B_AF_0'
+    run:
+        basename = os.path.split(wildcards.directory)[1]
+        if basename == 'null':
+            seeds = null_seeds
+        else:
+            seeds = admixed_seeds
+
+        with open(output[0], 'w') as writer:
+            for s in sorted(seeds):
+                writer.write('{}\n'.format(s))
+        
+rule sstar_window:
+    input:
+        pop=os.path.join(config['base_output_directory'], 'base.popfile'),
+        mod=os.path.join('{directory}',
+                         'vcfs',
+                         '{seed}.mod.vcf.gz'),
+        arch=os.path.join('{directory}',
+                          'vcfs',
+                          '{seed}.mod.ARCHAIC.vcf.gz')
+
+    output:
+        os.path.join('{directory}',
+                     'RegionFiles',
+                     '{seed}.windowcalc.gz')
+
+    shell:
+        "module load anaconda \n"
+        "python {config[sstar_dir]}/freezing-archer/bin/windowed_calculations.py "
+            "--vcf-has-illumina-chrnums "
+            "-vcfz {input.mod} "
+            "-indf {input.pop} "
+            "-target-pops EUR ASN "
+            "-ref-pops AFR "
+            "--archaic-vcf {input.arch} "
+            "-p 10 "
+            "-s-star "
+            "-winlen 50000 "
+            "-winstep 10000 "
+            "-no-pvalues "
+            "-range 0 {int_length} "
+            "| gzip -c - > {output}"
+
+rule process_vcf:
+    input: os.path.join('{directory}', '{seed}.vcf.gz')
+
+    output:
+        mod=os.path.join('{directory}', '{seed}.mod.vcf.gz'),
+        arch=os.path.join('{directory}', '{seed}.mod.ARCHAIC.vcf.gz')
+
+    shell:
+        "module load samtools \n"
+        "zcat {input} | "
+            "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
+                "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
+            "bgzip -c > {output.mod} \n"
+        "tabix -fp vcf {output.mod} \n"
+        "{config[vcftools_bin]} --gzvcf {output.mod} "
+            "--keep {config[sstar_dir]}/bin/vcf_keep_archaic.txt "
+            "--recode --stdout | "
+            "bgzip -c > {output.arch} \n"
+        "tabix -fp vcf {output.arch}"
+
+
+rule generate_popfile:
+    output:
+        temp(os.path.join(config['base_output_directory'], 'base.popfile'))
 
     conda:
         "../msprime.yml"
 
     shell:
         'python {config[msprime_script]} '
-            '{params[msprime_base_params]} '
+            '{config[msprime_base_params]} '
+            '--popfile base ' 
+            '--out-dir {config[base_output_directory]}'
+    
+
+def get_params(wildcards):
+    basename = os.path.split(wildcards.directory)[0]
+    basename = os.path.split(wildcards.directory)[1]
+
+    if basename == 'null':
+        return config['msprime_null_params']
+    else:
+        return config['msprime_admixed_params']
+
+rule generate_vcf:
+    output: 
+        temp(os.path.join('{directory}', '{seed,\d+}.vcf.gz'))
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {config[msprime_script]} '
+            '{msprime_base} '
             '-s {wildcards.seed} '
             '--vcf {wildcards.seed} ' 
-            '--out-dir {config[null_directory]}'
+            '--out-dir {wildcards.directory} '
+            '{params}'
