@@ -1,7 +1,7 @@
 import sys
 import math
 import collections
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 from File_Printer import file_printer
 import Demography_Models
 
@@ -11,14 +11,11 @@ def main():
     model = get_model(options)
 
     with file_printer(options) as printer:
-
         printer.print_options()
         printer.print_debug(model)
 
-        # simulate with 1 replicate for haplo and vcf
-        simulation = model.simulate(replicates=1)
-
         if printer.single_simulation_needed():
+            simulation = model.simulate(replicates=1)
             tree_sequence = next(simulation)
 
             if printer.vcf_needed():
@@ -26,7 +23,8 @@ def main():
                 printer.print_vcf(tree_sequence)
 
             if printer.haplo_needed():
-                haplotype_entry_list = get_haplo_entries(tree_sequence, options)
+                haplotype_entry_list = get_haplo_entries(tree_sequence,
+                                                         options)
                 printer.print_haplo(haplotype_entry_list)
 
             if printer.ils_needed():
@@ -46,7 +44,7 @@ def get_model(options):
         "Tenn": Demography_Models.Tenn_demography(options),
         "Sriram": Demography_Models.Sriram_demography(options),
         "SplitPop": Demography_Models.SplitPop_demography(options),
-        "test": Demography_Models.Out_of_africa_demography(options),
+        "OutOfAfr": Demography_Models.Out_of_africa_demography(options),
         "Tenn_nomod": Demography_Models.Tenn_no_modern_migration(options),
         "Tenn_pulsed": Demography_Models.Tenn_pulsed_migration(options),
     }
@@ -119,11 +117,10 @@ def introgressed_samples_fn(ts, neanderthal_mrca,
 
 
 def get_haplo_entries(tree_sequence, options, isILS=False):
-    haplo_entry_list = []
     human_samples = get_human_samples(options)
 
+    haplo_entries = {}
     node_map = collections.defaultdict(list)
-
     # fill node_map with records from tree
     for record in tree_sequence.records():
         if isILS:
@@ -143,21 +140,63 @@ def get_haplo_entries(tree_sequence, options, isILS=False):
         iterator = introgressed_samples_fn(
             tree_sequence,
             neanderthal_mrca,
-            range(0, options.s_n1 + options.s_n2),
+            list(range(0, options.s_n1 + options.s_n2)),
             segments,
             isILS)
 
         for left, right, samples in iterator:
-            for s in samples:
-                if s in human_samples and \
+            for sample in samples:
+                if sample in human_samples and \
                         math.ceil(left) < math.ceil(right):
-                    haplo_entry_list.append(
-                        '{0}\t{1:.0f}\t{2:.0f}\t{0}'.format(
-                            s,
-                            math.ceil(left),
-                            math.ceil(right)))
+                    merge_dict(haplo_entries,
+                               (str(sample), math.ceil(left),
+                                math.ceil(right)))
 
-    return haplo_entry_list
+    return haplo_entries
+
+
+def merge_dict(haplo_dict, new_entry):
+    # add a new entry to dictionary, which is a list of start and end lists
+    # lists are sorted by start position and overlap is merged
+    key, start, end = new_entry
+
+    if key not in haplo_dict:
+        haplo_dict[key] = [[start], [end]]
+        return
+
+    # iterate for testing equality with old method
+    starts = haplo_dict[key][0]
+    ends = haplo_dict[key][1]
+
+    for i in range(len(starts)):
+        if start > ends[i]:
+            continue
+        if end < starts[i]:
+            starts.insert(i, start)
+            ends.insert(i, end)
+            return
+        starts[i] = min(starts[i], start)
+        if end < ends[i]:
+            return
+        if i == len(starts)-1 or end < starts[i+1]:
+            ends[i] = end
+            return
+        # need to see how far the end goes
+        j = i+1
+        while j < len(starts) and end >= starts[j]:
+            if end <= ends[j]:
+                del starts[j]
+                del ends[i]
+                return
+            else:
+                del starts[j]
+                del ends[j]
+        ends[i] = end
+        return
+
+    starts.append(start)
+    ends.append(end)
+    return
 
 
 def get_human_samples(options):
@@ -203,7 +242,7 @@ def write_f4dstats(simulation, printer, model):
 
                 printer.write_to(
                     'ind',
-                    str.encode('Sample_{}\tU\t{}\n'.format(i, pop)))
+                    'Sample_{}\tU\t{}\n'.format(i, pop))
 
         #  WRITE THE .EIGENSTRATGENO AND .SNP FILES  ###
         chr_num = t+1
@@ -211,17 +250,16 @@ def write_f4dstats(simulation, printer, model):
             rs_num += 1
 
             # write genotypes to .eigenstratgeno file
-            printer.write_to('eigen', variant.genotypes+b'\n')
+            printer.write_to('eigen', variant.genotypes + b'\n')
 
             # write snp_allele info to .snp file
             printer.write_to(
                 'snp',
-                str.encode(
-                    'rs{rs}\t{chr}\t{loc}\t{pos}\tA\tT\n'.format(
-                        rs=rs_num,
-                        chr=chr_num,
-                        loc=variant.position / options.length,
-                        pos=int(variant.position))))
+                'rs{rs}\t{chr}\t{loc}\t{pos}\tA\tT\n'.format(
+                    rs=rs_num,
+                    chr=chr_num,
+                    loc=variant.position / options.length,
+                    pos=int(variant.position)))
 
     printer.print_f4dstat()
 

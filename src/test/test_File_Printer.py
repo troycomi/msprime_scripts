@@ -1,4 +1,4 @@
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 from File_Printer import file_printer
 import pytest
 import os
@@ -20,25 +20,25 @@ def test_options():
     assert fp.files['haplo'] == '*'
     assert fp.files['debug'] is None
 
-    opts = admixture_option_parser().parse_args(['--option'])
+    opts = admixture_option_parser().parse_args(['--options'])
     fp = file_printer(opts)
-    assert fp.files['option'] == '*'
+    assert fp.files['options'] == '*'
     assert fp.files['debug'] is None
 
     # flag set with filename on others
     opts = admixture_option_parser().parse_args(
         ['--debug', '--vcf', 'vcf.out'])
     fp = file_printer(opts)
-    assert fp.files['option'] is None
+    assert fp.files['options'] is None
     assert fp.files['debug'] == '*'
     assert fp.files['vcf'] == 'vcf.out'
 
     opts = admixture_option_parser().parse_args(
-        ['--option', '--f4dstat', 'f4'])
+        ['--options', '--f4dstat', 'f4'])
     fp = file_printer(opts)
     assert fp.files['haplo'] is None
     assert fp.files['f4dstat'] == 'f4'
-    assert fp.files['option'] == '*'
+    assert fp.files['options'] == '*'
 
     # outdir set ok
     opts = admixture_option_parser().parse_args(
@@ -65,19 +65,19 @@ def test_exeception_options():
     # too many flags set
     with pytest.raises(ValueError) as e:
         opts = admixture_option_parser().parse_args(
-            ['--option', '--haplo'])
+            ['--options', '--haplo'])
         file_printer(opts)
     assert 'Expected at most one output to stdout, got 2 instead.' in str(e)
 
     with pytest.raises(ValueError) as e:
         opts = admixture_option_parser().parse_args(
-            ['--vcf', 'vc', '--haplo', '--option', '--debug'])
+            ['--vcf', 'vc', '--haplo', '--options', '--debug'])
         file_printer(opts)
     assert 'Expected at most one output to stdout, got 3 instead.' in str(e)
 
     with pytest.raises(ValueError) as e:
         opts = admixture_option_parser().parse_args(
-            ['--haplo', '--option', '--debug'])
+            ['--haplo', '--options', '--debug'])
         file_printer(opts)
     assert 'Expected at most one output to stdout, got 3 instead.' in str(e)
 
@@ -195,38 +195,38 @@ def test_build_option(tmp_path):
     opts = admixture_option_parser().parse_args([])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] is None
+    assert fp.files['options'] is None
 
-    opts = admixture_option_parser().parse_args(['--option'])
+    opts = admixture_option_parser().parse_args(['--options'])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] == sys.stdout
+    assert fp.files['options'] == sys.stdout
 
     opts = admixture_option_parser().parse_args(
-        ['--option', '--out-dir', str(tmp_path)])
+        ['--options', '--out-dir', str(tmp_path)])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] == sys.stdout
+    assert fp.files['options'] == sys.stdout
 
     opts = admixture_option_parser().parse_args(
         ['--out-dir', str(tmp_path)])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] == os.path.join(
+    assert fp.files['options'] == os.path.join(
         str(tmp_path),
         'options.txt')
 
     opts = admixture_option_parser().parse_args(
-        ['--option', 'test.txt'])
+        ['--options', 'test.txt'])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] == os.path.join(os.getcwd(), 'test.txt')
+    assert fp.files['options'] == os.path.join(os.getcwd(), 'test.txt')
 
     opts = admixture_option_parser().parse_args(
-        ['--option', 'test.txt', '--out-dir', str(tmp_path)])
+        ['--options', 'test.txt', '--out-dir', str(tmp_path)])
     fp = file_printer(opts)
     fp.build_files()
-    assert fp.files['option'] == os.path.join(str(tmp_path), 'test.txt')
+    assert fp.files['options'] == os.path.join(str(tmp_path), 'test.txt')
 
 
 def test_build_vcf(tmp_path):
@@ -310,7 +310,7 @@ def test_open_writers(tmp_path):
         assert fp.haplo_needed() is False
         assert fp.f4dstat_needed() is False
 
-    singleopts = ['debug', 'option', 'haplo']
+    singleopts = ['debug', 'options', 'haplo']
     for o in singleopts:
         opts = admixture_option_parser().parse_args(['--' + o])
         with file_printer(opts) as fp:

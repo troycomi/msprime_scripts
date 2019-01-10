@@ -1,9 +1,8 @@
 import sys
-import io
 import gzip
 import os.path
 import pybedtools
-from AdmixtureOptionParser import admixture_option_parser
+from Option_Parser import admixture_option_parser
 
 
 def get_basename(file):
@@ -23,7 +22,7 @@ class file_printer(object):
         self.files['debug'] = options.debug_file
         self.files['haplo'] = options.haplo_file
         self.files['ils'] = options.ils_file
-        self.files['option'] = options.option_file
+        self.files['options'] = options.option_file
         self.files['vcf'] = options.vcf_file
         self.files['f4dstat'] = options.f4dstat_file
         self.out_dir = options.out_dir
@@ -78,7 +77,7 @@ class file_printer(object):
     def build_out_dir(self):
         if self.out_dir is not None:
             if not os.path.exists(self.out_dir):
-                os.mkdir(self.out_dir)
+                os.makedirs(self.out_dir, exist_ok=True)
         else:
             self.out_dir = os.getcwd()
 
@@ -142,8 +141,8 @@ class file_printer(object):
                            allow_stdout=True)
 
     def build_option(self, print_all):
-        self.build_generic('option',
-                           {'option': self.file_struct('options.txt')},
+        self.build_generic('options',
+                           {'options': self.file_struct('options.txt')},
                            print_all,
                            allow_stdout=True)
 
@@ -208,8 +207,10 @@ class file_printer(object):
             elif filename == sys.stdout:
                 writer = sys.stdout
             else:
-                if os.path.splitext(filename)[1] == '.gz':
+                if key == 'eigen':
                     writer = gzip.open(filename, 'wb')
+                elif os.path.splitext(filename)[1] == '.gz':
+                    writer = gzip.open(filename, 'wt')
                 else:
                     writer = open(filename, 'w')
 
@@ -221,7 +222,7 @@ class file_printer(object):
                 writer.close()
 
     def print_options(self):
-        writer = self.writers['option']
+        writer = self.writers['options']
 
         if writer is not None:
             writer.write("Options\n")
@@ -270,12 +271,7 @@ class file_printer(object):
         if writer is None:
             return
 
-        with io.StringIO() as tempfile:
-            tree_sequence.write_vcf(tempfile, 2)
-            tempfile.seek(0)
-
-            for line in tempfile.readlines():
-                writer.write(str.encode(line))
+        tree_sequence.write_vcf(writer, 2)
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None
@@ -295,23 +291,14 @@ class file_printer(object):
         if writer is None:
             return
 
-        # NOTE: After printing to a bed file, still need to sort and merge
-        haplo_entry_string = '\n'.join(haplo_entry_list)
-        pybedtools.set_tempdir('/scratch/')
-        bedfile = pybedtools.BedTool(haplo_entry_string, from_string=True)
-        bedfile_sorted_merged = pybedtools.BedTool.sort(bedfile).merge()
-
-        # Read the BEDfile line by line, add in the chr#,
-        # reorder so that the columns are: chr, strt, end, ind
-        for bed_line in bedfile_sorted_merged:
-            new_bed_line = '{}\t{}'.format(
-                str(bed_line).strip(),
-                self.options.seed)
-            new_bed_line = new_bed_line.split('\t')
-            new_bed_line[0], new_bed_line[3] = new_bed_line[3], new_bed_line[0]
-            writer.write(str.encode('\t'.join(new_bed_line)+'\n'))
-
-        pybedtools.cleanup(verbose=False)
+        for k in sorted(haplo_entry_list.keys()):
+            v = haplo_entry_list[k]
+            for start, end in zip(v[0], v[1]):
+                writer.write('{}\t{}\t{}\t{}\n'.format(
+                    self.options.seed,
+                    start,
+                    end,
+                    k))
 
     def f4dstat_needed(self):
         return self.writers['f4dstat'] is not None
@@ -328,16 +315,16 @@ class file_printer(object):
             return
 
         writer.write(
-            str.encode('genotypename: {}\n'.format(
-                get_basename(self.files['eigen']))))
+            'genotypename: {}\n'.format(
+                get_basename(self.files['eigen'])))
 
         writer.write(
-            str.encode('snpname: {}\n'.format(
-                get_basename(self.files['snp']))))
+            'snpname: {}\n'.format(
+                get_basename(self.files['snp'])))
 
         writer.write(
-            str.encode('indivname: {}\n'.format(
-                get_basename(self.files['ind']))))
+            'indivname: {}\n'.format(
+                get_basename(self.files['ind'])))
 
         writer.write(
-            str.encode('popfilename: sim.popfile_F4stat'+'\n'))
+            'popfilename: sim.popfile_F4stat'+'\n')

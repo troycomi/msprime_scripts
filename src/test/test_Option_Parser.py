@@ -1,11 +1,11 @@
 import pytest
-import AdmixtureOptionParser
+import Option_Parser
 from argparse import ArgumentError
 
 
 @pytest.fixture
 def parser():
-    return AdmixtureOptionParser.admixture_option_parser()
+    return Option_Parser.admixture_option_parser()
 
 
 def compare_options(options, nondefault={}):
@@ -36,6 +36,7 @@ def compare_options(options, nondefault={}):
                 'vcf_file': None,
                 'f4dstat_file': None,
                 'option_file': None,
+                'default_options': None,
                 'out_dir': None,
                 }
 
@@ -54,8 +55,8 @@ def test_defaults(parser):
 def test_single_changes(parser):
     options = parser.parse_args(['-p', 'EUR'])
     compare_options(options, {'pop': 'EUR'})
-    options = parser.parse_args(['-m', 'OUTPUT'])
-    compare_options(options, {'model': 'OUTPUT'})
+    options = parser.parse_args(['-m', 'Sriram'])
+    compare_options(options, {'model': 'Sriram'})
     options = parser.parse_args(['-s', '0'])
     compare_options(options, {'seed': 0})
     options = parser.parse_args(['-n', '0.003'])
@@ -69,7 +70,7 @@ def test_single_changes(parser):
     compare_options(options, {'debug_file': '*'})
     options = parser.parse_args(['--haplo'])
     compare_options(options, {'haplo_file': '*'})
-    options = parser.parse_args(['--option'])
+    options = parser.parse_args(['--options'])
     compare_options(options, {'option_file': '*'})
 
     options = parser.parse_args(['--debug', 'test debug'])
@@ -80,7 +81,7 @@ def test_single_changes(parser):
     compare_options(options, {'vcf_file': 'test vcf'})
     options = parser.parse_args(['--f4dstat', 'test f4'])
     compare_options(options, {'f4dstat_file': 'test f4'})
-    options = parser.parse_args(['--option', 'test option'])
+    options = parser.parse_args(['--options', 'test option'])
     compare_options(options, {'option_file': 'test option'})
     options = parser.parse_args(['--out-dir', 'test dir'])
     compare_options(options, {'out_dir': 'test dir'})
@@ -170,5 +171,7 @@ def test_type_error(parser):
         parser.parse_args(['-r', 'string'])
     with pytest.raises(ArgumentError):
         parser.parse_args(['--vcf'])
+    with pytest.raises(ArgumentError):
+        parser.parse_args(['--model', 'NONE'])
     with pytest.raises(ArgumentError):
         parser.parse_args(['--f4dstat'])
