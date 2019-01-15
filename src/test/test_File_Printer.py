@@ -82,6 +82,14 @@ def test_exeception_options():
     assert 'Expected at most one output to stdout, got 3 instead.' in str(e)
 
 
+def test_build_file_struct():
+    fs = file_printer.file_struct("", "{}.txt")
+    assert fs.non_default("test") == "test.txt"
+    assert fs.non_default("outdir/test") == "outdir/test.txt"
+    assert fs.non_default("test.txt") == "test.txt"
+    assert fs.non_default("outdir/test.txt") == "outdir/test.txt"
+        
+
 def test_build_out_dir(tmp_path):
     # default set to wd
     opts = admixture_option_parser().parse_args(

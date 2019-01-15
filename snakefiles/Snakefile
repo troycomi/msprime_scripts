@@ -3,48 +3,97 @@ configfile: "config.yaml"
 
 import random
 import os
+from clean_config import clean_config_paths
 
 random.seed(1)
-null_seeds = random.sample(range(1, 1<<16), config['null_simulations'])
+null_seeds = random.sample(range(1, 1<<16),
+                           config['msprime']['null_simulations'])
 random.seed(2)
-admixed_seeds = random.sample(range(1, 1<<16), config['admixed_simulations'])
+admixed_seeds = random.sample(range(1, 1<<16),
+                              config['msprime']['admixed_simulations'])
 
-msprime_base = config['msprime_base_params'] \
-                + ' -m {}'.format(config['model']) \
-                + ' -l {}'.format(config['length'])
-int_length = int(float(config['length']))
+msprime_base_params = config['msprime']['base_params'] \
+                + " -m {}".format(config['msprime']['model']) \
+                + " -l {}".format(config['msprime']['length'])
 
-null_directory = os.path.join(config['base_output_directory'], 'null')
-admixed_directory = os.path.join(config['base_output_directory'],
-                                 config['admixed_dir'])
+model = config['msprime']['model']
+
+paths = config['paths']
+paths['base_output'] = paths['base_output'].format(model=model)
+
+dirs = {'null': os.path.split(paths['null_dir'])[1],
+        'admixed': os.path.split(paths['admixed_dir'])[1]}
+paths = clean_config_paths(paths)
 
 rule all:
     input:
-        expand(os.path.join(null_directory,
-                            'RegionFiles',
-                            '{seed}.windowcalc.gz'),
-               seed=null_seeds),
-        os.path.join(null_directory, config['model'] + ".chr_list"),
-
-        expand(os.path.join(admixed_directory,
-                            'RegionFiles',
-                            '{seed}.windowcalc.gz'),
-               seed=admixed_seeds),
-        os.path.join(admixed_directory, config['model'] + ".chr_list")
-
+        expand(paths['window_calc'],
+               seed=null_seeds,
+               directory=dirs['null']),
+        paths['edcf_data'].format(chrom=len(null_seeds)),
+        expand(paths['pvalue_table'],
+               seed=admixed_seeds,
+               directory=dirs['admixed']),
+        expand(paths['options'],
+               directory=dirs.values()),
+        expand(paths['config_copy'],)
+            
 rule clean:
-    shell:
-        'rm -rf {null_directory} || echo no null files\n'
-        'rm -rf {admixed_directory} || echo no admixed files\n'
-        'rm slurm_out/* || echo no slurm output'
+    run:
+        out_dir = paths['base_output']
+        shell('rm -rf {out_dir} || echo no admixed files')
+        shell('rm slurm_out/* || echo no slurm output')
 
-rule make_chr_list:
+rule config_copy:
     output:
-        os.path.join('{directory}', config['model'] + ".chr_list")
+        paths['config_copy']
+
+    shell:
+        'cp config.yaml {output}'
+
+def get_params(wildcards):
+    if wildcards.directory == 'null':
+        return config['msprime']['null_params']
+    else:
+        return config['msprime']['admixed_params']
+
+rule generate_bed:
+    output: 
+        temp(paths['bedfile'])
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '-s {wildcards.seed} '
+            '--haplo {output} ' 
+            '{params}'
+
+def get_windows(wildcards):
+    if wildcards.directory == 'null':
+        return expand(paths['window_calc'],
+               directory=wildcards.directory,
+               seed=null_seeds)
+        
+    else:
+        return expand(paths['window_calc'],
+               directory=wildcards.directory,
+               seed=admixed_seeds)
+        
+rule make_chr_list:
+    input:
+        get_windows
+
+    output:
+        paths['chr_list']
 
     run:
-        basename = os.path.split(wildcards.directory)[1]
-        if basename == 'null':
+        if wildcards.directory == 'null':
             seeds = null_seeds
         else:
             seeds = admixed_seeds
@@ -55,22 +104,17 @@ rule make_chr_list:
         
 rule sstar_window:
     input:
-        pop=os.path.join(config['base_output_directory'], 'base.popfile'),
-        mod=os.path.join('{directory}',
-                         'vcfs',
-                         '{seed}.mod.vcf.gz'),
-        arch=os.path.join('{directory}',
-                          'vcfs',
-                          '{seed}.mod.ARCHAIC.vcf.gz')
+        pop=paths['popfile'],
+        mod=paths['mod_vcf'],
+        arch=paths['arch_vcf']
 
     output:
-        os.path.join('{directory}',
-                     'RegionFiles',
-                     '{seed}.windowcalc.gz')
+        paths['window_calc']
 
     shell:
         "module load anaconda \n"
-        "python {config[sstar_dir]}/freezing-archer/bin/windowed_calculations.py "
+        "python {paths[sstar_dir]}"
+            "/freezing-archer/bin/windowed_calculations.py "
             "--vcf-has-illumina-chrnums "
             "-vcfz {input.mod} "
             "-indf {input.pop} "
@@ -79,18 +123,19 @@ rule sstar_window:
             "--archaic-vcf {input.arch} "
             "-p 10 "
             "-s-star "
-            "-winlen 50000 "
-            "-winstep 10000 "
+            "-winlen {config[s_star][window_size]} "
+            "-winstep {config[s_star][window_step_size]} "
             "-no-pvalues "
-            "-range 0 {int_length} "
+            "-range 0 {config[msprime][length]} "
+            "2>/dev/null "
             "| gzip -c - > {output}"
 
 rule process_vcf:
-    input: os.path.join('{directory}', '{seed}.vcf.gz')
+    input: paths['raw_vcf']
 
     output:
-        mod=os.path.join('{directory}', '{seed}.mod.vcf.gz'),
-        arch=os.path.join('{directory}', '{seed}.mod.ARCHAIC.vcf.gz')
+        mod=paths['mod_vcf'],
+        arch=paths['arch_vcf']
 
     shell:
         "module load samtools \n"
@@ -99,39 +144,27 @@ rule process_vcf:
                 "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
             "bgzip -c > {output.mod} \n"
         "tabix -fp vcf {output.mod} \n"
-        "{config[vcftools_bin]} --gzvcf {output.mod} "
-            "--keep {config[sstar_dir]}/bin/vcf_keep_archaic.txt "
-            "--recode --stdout | "
+        "{paths[vcftools_bin]} --gzvcf {output.mod} "
+            "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
+            "--recode --stdout 2>/dev/null | "
             "bgzip -c > {output.arch} \n"
         "tabix -fp vcf {output.arch}"
 
-
 rule generate_popfile:
     output:
-        temp(os.path.join(config['base_output_directory'], 'base.popfile'))
+        paths['popfile']
 
     conda:
         "../msprime.yml"
 
     shell:
-        'python {config[msprime_script]} '
-            '{config[msprime_base_params]} '
-            '--popfile base ' 
-            '--out-dir {config[base_output_directory]}'
-    
-
-def get_params(wildcards):
-    basename = os.path.split(wildcards.directory)[0]
-    basename = os.path.split(wildcards.directory)[1]
-
-    if basename == 'null':
-        return config['msprime_null_params']
-    else:
-        return config['msprime_admixed_params']
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '--popfile {output} ' 
 
 rule generate_vcf:
     output: 
-        temp(os.path.join('{directory}', '{seed,\d+}.vcf.gz'))
+        temp(paths['raw_vcf'])
 
     params:
         get_params
@@ -140,9 +173,172 @@ rule generate_vcf:
         "../msprime.yml"
 
     shell:
-        'python {config[msprime_script]} '
-            '{msprime_base} '
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
             '-s {wildcards.seed} '
-            '--vcf {wildcards.seed} ' 
-            '--out-dir {wildcards.directory} '
+            '--vcf {output} ' 
             '{params}'
+
+rule generate_options:
+    output:
+        paths['options']
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '--options {output} '
+            '{params}'
+
+rule haplotype_to_sample:
+    output:
+        paths['haplotype_map']
+
+    input:
+        paths['popfile']
+
+    run:
+        with open(input[0], 'r') as reader, \
+            open(output[0], 'w') as writer:
+            counter = 0
+            reader.readline()
+            for line in reader:
+                pop = line.split('\t')[0]
+                writer.write(f"{counter}\t{pop}:0\n")
+                counter += 1
+                writer.write(f"{counter}\t{pop}:1\n")
+                counter += 1
+
+rule match_pct:
+    input:
+        vcf=paths['mod_vcf'],
+        pop=paths['popfile']
+
+    output:
+        temp(paths['match_counts'])
+
+    params:
+        archaic=" ".join(config['match_pct']['archaic']),
+        modern=" ".join(config['match_pct']['modern'])
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'archaic_match max-match-pct '
+            '--vcf {input.vcf} '
+            '--populations {input.pop} '
+            '--archaic-populations {params.archaic} '
+            '--modern-populations {params.modern} '
+            '--chrom-sizes {config[msprime][length]} '
+            '--informative-site-method {config[match_pct][informative_site_method]} '
+            '> {output} 2>1'
+
+rule build_db:
+    input:
+        expand(paths['match_counts'],
+               directory=dirs['null'],
+               seed=null_seeds)
+
+    output:
+        paths['null_db']
+
+    params:
+        input_glob=lambda wildcards: paths['match_counts']\
+                    .replace("{directory}", dirs['null'])\
+                    .replace("{seed,\d+}", "*")
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'archaic_match build-db '
+        '--match-pct-count {params.input_glob} '
+        '--db {output}'
+
+rule combine_introgressed_regions:
+    input:
+        regions=expand(paths['bedfile'],
+                       seed=admixed_seeds,
+                       directory=dirs['admixed']),
+        sample_map=paths['haplotype_map']
+
+    output:
+        paths['combined_bed']
+
+    params:
+        input_glob=lambda wildcards: paths['bedfile'].format(seed="*",
+                                                             directory=dirs['admixed'])
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'column_replace '
+            '{params.input_glob} '
+            '-d {input.sample_map} '
+            '-c 4 '
+            '| sort -k 1,1 -k 2,2n '
+            '| bgzip > {output}'
+
+rule match_pct_pvalue:
+    input:
+        vcf=paths['mod_vcf'],
+        pop=paths['popfile'],
+        match_db=paths['null_db'],
+        overlap=paths['combined_bed']
+
+    output:
+        paths['pvalue_table']
+
+    params:
+        archaic=" ".join(config['match_pct']['archaic']),
+        modern=" ".join(config['match_pct']['modern'])
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'archaic_match max-match-pct '
+            '--vcf {input.vcf} '
+            '--archaic-populations {params.archaic} '
+            '--modern-populations {params.modern} '
+            '--chrom-sizes {config[msprime][length]} '
+            '--populations {input.pop} '
+            '--window-size {config[s_star][window_size]} '
+            '--step-size {config[s_star][window_step_size]} '
+            '--match-pct-database {input.match_db} '
+            '--informative-site-method {config[match_pct][informative_site_method]} '
+            '--informative-site-range {config[match_pct][informative_site_range]} '
+            '--overlap-regions {input.overlap} '
+            '| bgzip > {output}'
+
+rule generate_ecdf:
+    input:
+        paths['chr_list'].format(model=model,
+                                 directory=dirs['null']),
+        expand(paths['window_calc'],
+               seed=null_seeds,
+               directory=dirs['null'])
+
+    output:
+        paths['edcf_data'].format(chrom=len(null_seeds))
+
+    params:
+        chrom=len(null_seeds),
+
+    conda:
+        "sstar_ecdf.yml"
+
+    shell:
+        'echo {input} \n'
+        'Rscript SstarECDFpvalueCalculation.R '
+            '--inputdir {paths[base_output]} '
+            '--null_dir /{dirs[null]} '
+            '--max_chrm_null {params.chrom} '
+            '--ecdf_only '

@@ -1,7 +1,6 @@
 import sys
 import gzip
 import os.path
-import pybedtools
 from Option_Parser import admixture_option_parser
 
 
@@ -74,7 +73,17 @@ class file_printer(object):
             self.fmt = fmt
 
         def non_default(self, base):
-            return self.fmt.format(base)
+            # split out dir
+            directory, base = os.path.split(base)
+
+            # check if format adds extension and ext is already there
+            if self.fmt[0:2] == "{}":
+                ext = self.fmt[2:]
+                if ext == base[-len(ext):]:
+                    return os.path.join(directory, base)
+            return os.path.join(
+                directory,
+                self.fmt.format(base))
 
     def build_out_dir(self):
         if self.out_dir is not None:
