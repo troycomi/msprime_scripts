@@ -91,7 +91,7 @@ write.filtered.bed.fn <- function(dt, outputdir, mdl, admix, chrom, spval, match
  options(scipen=10)
  dat.bed %<>% mutate(start=str_trim(as.character(start),side = "both")) %>% mutate(end=str_trim(as.character(end), side = "both"))
  write.table(x = dat.bed,
-           file = paste0(outputdir,'/',mdl,'_',chrom,'_',admix,'.sstar_sig_',spval,'.match_sig_N_',matchpval,'.isc_0','.bed'),
+           file = paste0(outputdir,'/',chrom,'.sstar_sig_',spval,'.match_sig_N_',matchpval,'.isc_0','.bed'),
            quote = FALSE,
            sep = '\t',
            row.names = FALSE,
@@ -126,7 +126,7 @@ write.all.bed.fn <- function(dt, outputdir, mdl, admix, chrom){
  options(scipen=10)
  dat.bed %<>% mutate(start=str_trim(as.character(start),side = "both")) %>% mutate(end=str_trim(as.character(end), side = "both"))
  write.table(x = dat.bed,
-           file = paste0(outputdir,'/',mdl,'_',chrom,'_',admix,'.sstar_sig_','ALL','.match_sig_N_MH_','ALL','.isc_0','.bed'),
+           file = paste0(outputdir,'/',chrom,'.sstar_sig_','ALL','.match_sig_N_MH_','ALL','.isc_0','.bed'),
            quote = FALSE,
            sep = '\t',
            row.names = FALSE,
@@ -239,7 +239,7 @@ maxchrm <- opt$max_chrm_admix
     out <- data.table(NULL)
     c <- sim_chrms[i][[1]]
     print(paste0(' Loading ADMIX chromosome number: ',c))
-    infile <- paste0(inputdir,dir,'/RegionFiles/', mdl, "_",c,'_',admix,".windowcalc_out.gz")
+    infile <- paste0(inputdir,dir,'/RegionFiles/', c, ".windowcalc.gz")
     if( length(readLines(infile)) == 0 ) { next }
 
     dat <- fread(paste0('zcat ',infile), header=TRUE,
@@ -290,7 +290,7 @@ maxchrm <- opt$max_chrm_admix
     #######################
 
     print(paste0(' Loading MATCHPVAL chromosome number: ',c))
-    infile <- paste0(inputdir,dir,'/match_pvalues/null-*/','pvalue_table_', mdl, "_",c,'_',admix,"_*.tsv.gz")
+    infile <- paste0(inputdir,dir,'/match_pct/',c,".tsv.gz")
     admix.match_pvals <- fread(paste0('zcat ',infile), header=TRUE,
                                 select=c('chr','start','end','haplotype','pvalue'),
                                 col.names=c('chrom','winstart','winend','ID','match_pvalue'))

@@ -27,13 +27,11 @@ paths = clean_config_paths(paths)
 
 rule all:
     input:
-        expand(paths['window_calc'],
-               seed=null_seeds,
-               directory=dirs['null']),
-        paths['edcf_data'].format(chrom=len(null_seeds)),
-        expand(paths['pvalue_table'],
+        expand(paths['ecdf_bed_merge_pop'],
                seed=admixed_seeds,
-               directory=dirs['admixed']),
+               sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+               matchpvalue=config['s_star_ecdf']['matchpvalue'],
+               population=['ASN', 'EUR']),
         expand(paths['options'],
                directory=dirs.values()),
         expand(paths['config_copy'],)
@@ -237,7 +235,7 @@ rule match_pct:
             '--modern-populations {params.modern} '
             '--chrom-sizes {config[msprime][length]} '
             '--informative-site-method {config[match_pct][informative_site_method]} '
-            '> {output} 2>1'
+            '> {output} 2>/dev/null'
 
 rule build_db:
     input:
@@ -327,7 +325,7 @@ rule generate_ecdf:
                directory=dirs['null'])
 
     output:
-        paths['edcf_data'].format(chrom=len(null_seeds))
+        paths['ecdf_data'].format(chrom=len(null_seeds))
 
     params:
         chrom=len(null_seeds),
@@ -336,9 +334,115 @@ rule generate_ecdf:
         "sstar_ecdf.yml"
 
     shell:
-        'echo {input} \n'
         'Rscript SstarECDFpvalueCalculation.R '
             '--inputdir {paths[base_output]} '
             '--null_dir /{dirs[null]} '
             '--max_chrm_null {params.chrom} '
-            '--ecdf_only '
+            '--ecdf_only > /dev/null'
+
+rule ecdf_bed:
+    input:
+        paths['chr_list'].format(model=model,
+                                 directory=dirs['admixed']),
+        expand(paths['window_calc'],
+               seed=admixed_seeds,
+               directory=dirs['admixed']),
+        expand(paths['pvalue_table'],
+               seed=admixed_seeds,
+               directory=dirs['admixed']),
+        ecdf=paths['ecdf_data'].format(chrom=len(null_seeds)),
+
+    output:
+        expand(paths['ecdf_bed_files'],
+               seed=admixed_seeds,
+               sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+               matchpvalue=config['s_star_ecdf']['matchpvalue'])
+
+    params:
+        chrom=len(admixed_seeds)
+
+    conda:
+        "sstar_ecdf.yml"
+
+    shell:
+        'Rscript SstarECDFpvalueCalculation.R '
+            '--inputdir {paths[base_output]} '
+            '--outputdir {paths[ecdf_bed_dir]} '
+            '--admix_dir /{dirs[admixed]} '
+            '--max_chrm_admix {params.chrom} '
+            '--ecdf {input.ecdf} '
+            '--sstarpval {config[s_star_ecdf][sstarpvalue]} ' 
+            '--matchpval {config[s_star_ecdf][matchpvalue]} ' 
+            '{config[s_star_ecdf][filter]} > /dev/null' 
+
+rule merge_bed:
+    input:
+        paths['ecdf_bed_files']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+
+    output:
+        paths['ecdf_bed_merge']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+
+    shell:
+        'tail -n +2 {input} | '  # strip header
+        '{paths[bedops]}/sort-bed - | '
+        '{paths[bedops]}/bedops --merge - | '
+        'gzip -c - '
+        '> {output}'
+
+rule split_pops:
+    input:
+        bed=paths['ecdf_bed_merge']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+        pop=paths['popfile']
+
+    output:
+        paths['ecdf_bed_merge_pop']\
+           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+           .replace('{population}', 'ASN'),
+        paths['ecdf_bed_merge_pop']\
+           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+           .replace('{population}', 'EUR'),
+
+    run:
+        import gzip
+
+        eur = None
+        asn = None
+        with open(input.pop) as popfile:
+            popfile.readline()  # strip header
+            for line in popfile:
+                toks = line.split('\t')
+                if toks[1] == "EUR":
+                    if eur is None:
+                        eur = [toks[0]]*2
+                    else:
+                        eur[1] = toks[0]
+
+                elif toks[1] == "ASN" or toks[1] == "EAS":
+                    if asn is None:
+                        asn = [toks[0]]*2
+                    else:
+                        asn[1] = toks[0]
+
+        asn = [int(a[4:]) for a in asn]
+        eur = [int(a[4:]) for a in eur]
+        with gzip.open(output[0], 'wt') as asn_bed, \
+            gzip.open(output[1], 'wt') as eur_bed, \
+            gzip.open(input.bed, 'rt') as merge_bed:
+            for line in merge_bed:
+                # of form msp_XX:[1,2]_POSITION, strip XX
+                pop = int(line.split(':')[0][4:])
+                if pop > asn[0] and pop < asn[1]:
+                    asn_bed.write(line)
+                elif pop > eur[0] and pop < eur[1]:
+                    eur_bed.write(line)
+
+                    
+                

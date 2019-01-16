@@ -5,9 +5,10 @@ paths:
     sstar_dir: "/home/tcomi/projects/abwolf_abc/Sstar"
     vcftools_bin: "/tigress/AKEY/akey_vol1/software/Vcftools/\
                    vcftools-v0.1.15/bin/vcftools"
+    bedops: "/tigress/AKEY/akey_vol1/software/bedops/bin"
 
     base_output: "/tigress/tcomi/abwolf_abc/{model}"
-    admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    admixed_dir: "__BASE_OUTPUT__/n1_0.1_n2_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
 
@@ -28,21 +29,25 @@ paths:
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
-    edcf_data: "__NULL_DIR__/SstarECDF_maxchrm_{chrom}.RData.gz"
+    ecdf_data: "__NULL_DIR__/SstarECDF_maxchrm_{chrom}.RData.gz"
+    ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
+    ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed"
+    ecdf_bed_merge: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged.gz"
+    ecdf_bed_merge_pop: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged_{population}.gz"
 
 msprime:
     base_params: "-r 216"
     model: "Sriram"
-    length: 1000000
+    length: 10000000
 
-    null_simulations: 11
+    null_simulations: 5
     null_params: "-n 0.0 -d 0.0 \
                           -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                           -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                           -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 11
-    admixed_params: "-n 0.1 -d 0.0 \
+    admixed_simulations: 5
+    admixed_params: "-n 0.1 -d 0.1 \
                           -g AF_EU_0 -g EU_AF_0.0005 -g EU_AS_0 \
                           -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                           -G AF_B_0 -G B_AF_0"
@@ -68,3 +73,9 @@ match_pct:
     # distribution. If value is a float, it is multiplied by the count to
     # determine the range.
     informative_site_range: "0"
+
+s_star_ecdf:
+    # Note, to have no filter, set p values to "ALL" and have filter = "--nofilter"
+    sstarpvalue: "0.01"
+    matchpvalue: "0.05"
+    filter: "--filter"
