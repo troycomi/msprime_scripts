@@ -8,7 +8,7 @@ paths:
     bedops: "/tigress/AKEY/akey_vol1/software/bedops/bin"
 
     base_output: "/tigress/tcomi/abwolf_abc/{model}"
-    admixed_dir: "__BASE_OUTPUT__/n1_0.1_n2_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
 
@@ -24,7 +24,9 @@ paths:
     options: "__BASE_OUTPUT__/{directory}/options.txt"
     raw_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed,\\d+}.vcf.gz"
     mod_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz"
+    mod_tbi: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz.tbi"
     arch_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.ARCHAIC.vcf.gz"
+    arch_tbi: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.ARCHAIC.vcf.gz.tbi"
     match_counts: "__BASE_OUTPUT__/{directory}/match_pct/\
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
@@ -35,22 +37,32 @@ paths:
     ecdf_bed_merge: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged.gz"
     ecdf_bed_merge_pop: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged_{population}.gz"
 
+    sstar_out: "__ADMIXED_DIR__/admixture_Sstar.txt"
+    desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.gz"
+    desert_windows_unzip: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb"
+    below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.prop_blw_thrhld"
+
 msprime:
     base_params: "-r 216"
+    # while the following are added to base_params, they are needed
+    # in other parts of the workflow as well
     model: "Sriram"
-    length: 10000000
+    length: 1000000
+    n1: 0.1
+    n2: 0.0
+    EUR: 1006
+    ASN: 1008
 
     null_simulations: 5
     null_params: "-n 0.0 -d 0.0 \
-                          -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
-                          -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                          -G AF_B_0 -G B_AF_0"
+                  -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
+                  -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
+                  -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 5
-    admixed_params: "-n 0.1 -d 0.1 \
-                          -g AF_EU_0 -g EU_AF_0.0005 -g EU_AS_0 \
-                          -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                          -G AF_B_0 -G B_AF_0"
+    admixed_simulations: 7
+    admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
+                      -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
+                      -G AF_B_0 -G B_AF_0"
 
 s_star:
     window_size: "50000"
@@ -79,3 +91,5 @@ s_star_ecdf:
     sstarpvalue: "0.01"
     matchpvalue: "0.05"
     filter: "--filter"
+
+window_thresh: 0.000316

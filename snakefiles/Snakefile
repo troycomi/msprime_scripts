@@ -6,15 +6,20 @@ import os
 from clean_config import clean_config_paths
 
 random.seed(1)
-null_seeds = random.sample(range(1, 1<<16),
+null_seeds = random.sample(range(1, 1<<31),
                            config['msprime']['null_simulations'])
 random.seed(2)
-admixed_seeds = random.sample(range(1, 1<<16),
+admixed_seeds = random.sample(range(1, 1<<31),
                               config['msprime']['admixed_simulations'])
 
-msprime_base_params = config['msprime']['base_params'] \
-                + " -m {}".format(config['msprime']['model']) \
+msprime_base_params = (config['msprime']['base_params'] 
+                + " -n {}".format(config['msprime']['n1'])
+                + " -d {}".format(config['msprime']['n2'])
+                + " -m {}".format(config['msprime']['model']) 
                 + " -l {}".format(config['msprime']['length'])
+                + " -e {}".format(config['msprime']['EUR'])
+                + " -a {}".format(config['msprime']['ASN'])
+                )
 
 model = config['msprime']['model']
 
@@ -25,16 +30,19 @@ dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
 paths = clean_config_paths(paths)
 
+def all_input(wildcards):
+    result = expand(paths['options'],
+                     directory=dirs.values())
+    result.append(paths['config_copy'])
+    result.append(paths['sstar_out'])
+    if config['msprime']['length'] >= 10000000:
+        result.append(paths['below_thresh'])
+
+    return result
+
 rule all:
     input:
-        expand(paths['ecdf_bed_merge_pop'],
-               seed=admixed_seeds,
-               sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
-               matchpvalue=config['s_star_ecdf']['matchpvalue'],
-               population=['ASN', 'EUR']),
-        expand(paths['options'],
-               directory=dirs.values()),
-        expand(paths['config_copy'],)
+        all_input
             
 rule clean:
     run:
@@ -46,8 +54,10 @@ rule config_copy:
     output:
         paths['config_copy']
 
-    shell:
-        'cp config.yaml {output}'
+    run:
+        import yaml
+        with open(output[0], 'w') as conf:
+            yaml.dump(config, conf, default_flow_style=False)
 
 def get_params(wildcards):
     if wildcards.directory == 'null':
@@ -104,6 +114,8 @@ rule sstar_window:
     input:
         pop=paths['popfile'],
         mod=paths['mod_vcf'],
+        mod_tbi=paths['mod_tbi'],
+        arch_tbi=paths['arch_tbi'],
         arch=paths['arch_vcf']
 
     output:
@@ -133,7 +145,10 @@ rule process_vcf:
 
     output:
         mod=paths['mod_vcf'],
-        arch=paths['arch_vcf']
+        arch=paths['arch_vcf'],
+        mod_tbi=paths['mod_tbi'],
+        arch_tbi=paths['arch_tbi']
+        #TODO add in tbi as outputs, see if allel error resolves(mod and ARch)
 
     shell:
         "module load samtools \n"
@@ -215,6 +230,7 @@ rule haplotype_to_sample:
 rule match_pct:
     input:
         vcf=paths['mod_vcf'],
+        vcf_tbi=paths['mod_tbi'],
         pop=paths['popfile']
 
     output:
@@ -228,6 +244,7 @@ rule match_pct:
         "match_pvalue.yml"
 
     shell:
+        'touch {input.vcf_tbi} \n'
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
             '--populations {input.pop} '
@@ -287,6 +304,7 @@ rule combine_introgressed_regions:
 rule match_pct_pvalue:
     input:
         vcf=paths['mod_vcf'],
+        vcf_tbi=paths['mod_tbi'],
         pop=paths['popfile'],
         match_db=paths['null_db'],
         overlap=paths['combined_bed']
@@ -302,6 +320,7 @@ rule match_pct_pvalue:
         "match_pvalue.yml"
 
     shell:
+        'touch {input.vcf_tbi} \n'
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
             '--archaic-populations {params.archaic} '
@@ -373,7 +392,7 @@ rule ecdf_bed:
             '--ecdf {input.ecdf} '
             '--sstarpval {config[s_star_ecdf][sstarpvalue]} ' 
             '--matchpval {config[s_star_ecdf][matchpvalue]} ' 
-            '{config[s_star_ecdf][filter]} > /dev/null' 
+            '{config[s_star_ecdf][filter]} &> /dev/null' 
 
 rule merge_bed:
     input:
@@ -444,5 +463,83 @@ rule split_pops:
                 elif pop > eur[0] and pop < eur[1]:
                     eur_bed.write(line)
 
-                    
-                
+rule calc_admix:
+    input:
+        asn=expand(paths['ecdf_bed_merge_pop']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+                   .replace('{population}', 'ASN'),
+                   seed=admixed_seeds),
+        eur=expand(paths['ecdf_bed_merge_pop']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+                   .replace('{population}', 'EUR'),
+                   seed=admixed_seeds)
+
+    output:
+        paths['sstar_out']
+
+    shell:
+        'zcat {input.asn} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
+            '{{print "ASN: " sum_bp/{config[msprime][ASN]}/1000/{config[msprime][length]}}} \' '
+        '> {output} \n'
+        'zcat {input.eur} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
+            '{{print "EUR: " sum_bp/{config[msprime][EUR]}/1000/{config[msprime][length]}}} \' '
+        '>> {output}'
+
+rule calc_deserts:
+    input:
+        expand(paths['ecdf_bed_merge']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+                   seed=admixed_seeds)
+
+    output:
+        paths['desert_windows']
+
+    shell:
+        'zcat {input} | '
+        'python split_chromosomes.py {config[msprime][length]} | '
+        'gzip -c > {output}'
+
+rule add_n1_n2:
+    input:
+        paths['desert_windows']
+
+    output:
+        pipe(paths['desert_windows_unzip'])
+
+    shell:
+        'zcat {input} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "0.1", "0.0"}}\' '
+        '> {output} '
+
+rule significant_windows:
+    input:
+        windows=paths['desert_windows_unzip'],
+        chroms=paths['chr_list']\
+            .replace('{directory}', dirs['admixed'])\
+            .replace('{model}', model),
+        pop=paths['popfile']
+
+    output:
+        paths['below_thresh']
+
+    params:
+        indivs=lambda wildcards, input: sum(1 for line in open(input.pop)) * 2
+        
+    conda:
+        'sstar_ecdf.yml'
+
+    shell:
+        'Rscript toPct_int.1_to_15Mb.R '
+            '{input.windows} '
+            '{params.indivs} '
+            '{config[msprime][model]} '
+            '{config[window_thresh]} '
+            '{input.chroms} '
+            '> {output}'
+
+

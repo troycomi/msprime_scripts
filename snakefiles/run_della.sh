@@ -19,5 +19,6 @@ snakemake --use-conda --create-envs-only
 #perform workflow.  
 srun --ntasks=1 --cpus-per-task=$THREADS --time=02:00:00 \
     --mem=4G snakemake --use-conda -j $THREADS \
-    -pr
+    -pr \
+    #-R $(snakemake --list-input-changes)
     #--rerun-incomplete
