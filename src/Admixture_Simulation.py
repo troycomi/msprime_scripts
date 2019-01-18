@@ -18,9 +18,8 @@ def main():
             simulation = model.simulate(replicates=1)
             tree_sequence = next(simulation)
 
-            if printer.vcf_needed():
-                printer.print_popfile(model, tree_sequence)
-                printer.print_vcf(tree_sequence)
+            printer.print_popfile(model, tree_sequence)
+            printer.print_vcf(tree_sequence)
 
             if printer.haplo_needed():
                 haplotype_entry_list = get_haplo_entries(tree_sequence,

@@ -1,7 +1,6 @@
 import sys
 import gzip
 import os.path
-import pybedtools
 from Option_Parser import admixture_option_parser
 
 
@@ -24,6 +23,7 @@ class file_printer(object):
         self.files['ils'] = options.ils_file
         self.files['options'] = options.option_file
         self.files['vcf'] = options.vcf_file
+        self.files['popfile'] = options.popfile_file
         self.files['f4dstat'] = options.f4dstat_file
         self.out_dir = options.out_dir
 
@@ -63,6 +63,7 @@ class file_printer(object):
         self.build_haplo(print_all)
         self.build_ils(print_all)
         self.build_option(print_all)
+        self.build_popfile(print_all)
         self.build_vcf(print_all)
         self.build_f4dstat(print_all)
 
@@ -72,7 +73,17 @@ class file_printer(object):
             self.fmt = fmt
 
         def non_default(self, base):
-            return self.fmt.format(base)
+            # split out dir
+            directory, base = os.path.split(base)
+
+            # check if format adds extension and ext is already there
+            if self.fmt[0:2] == "{}":
+                ext = self.fmt[2:]
+                if ext == base[-len(ext):]:
+                    return os.path.join(directory, base)
+            return os.path.join(
+                directory,
+                self.fmt.format(base))
 
     def build_out_dir(self):
         if self.out_dir is not None:
@@ -146,16 +157,20 @@ class file_printer(object):
                            print_all,
                            allow_stdout=True)
 
+    def build_popfile(self, print_all):
+        self.build_generic('popfile',
+                           {'popfile':
+                            self.file_struct(
+                                self.get_filename('.popfile'),
+                                "{}.popfile")},
+                           print_all)
+
     def build_vcf(self, print_all):
         self.build_generic('vcf',
                            {'vcf':
                             self.file_struct(
                                 self.get_filename('.vcf.gz'),
-                                "{}.vcf.gz"),
-                            'popfile':
-                            self.file_struct(
-                                self.get_filename('.popfile'),
-                                "{}.popfile")},
+                                "{}.vcf.gz")},
                            print_all)
 
     def build_f4dstat(self, print_all):
@@ -258,12 +273,10 @@ class file_printer(object):
                     long_names[tree_sequence.get_population(i)]))
 
     def single_simulation_needed(self):
-        return self.vcf_needed() or \
+        return self.writers['vcf'] is not None or \
+            self.writers['popfile'] is not None or \
             self.haplo_needed() or \
             self.ils_needed()
-
-    def vcf_needed(self):
-        return self.writers['vcf'] is not None
 
     def print_vcf(self, tree_sequence):
         writer = self.writers['vcf']

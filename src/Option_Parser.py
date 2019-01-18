@@ -168,8 +168,13 @@ class admixture_option_parser(ArgumentParser):
                           dest="vcf_file",
                           default=None,
                           help="vcf output base filename.  If argument is "
-                               "BASE will generate BASE.vcf.gz and "
-                               "BASE.popfile")
+                               "BASE will generate BASE.vcf.gz")
+
+        self.add_argument("--popfile",
+                          dest="popfile_file",
+                          default=None,
+                          help="popfile output base filename.  If argument is "
+                               "BASE will generate BASE.popfile")
 
         self.add_argument("--f4dstat",
                           dest="f4dstat_file",

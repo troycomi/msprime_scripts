@@ -1,0 +1,17 @@
+__default__:
+    "n": 1
+    "memory": '1G'
+    "time": '0-2'
+    "jobname": 'snake'
+
+sstar_window:
+    "jobname": 'sstar-window'
+
+process_vcf:
+    "jobname": 'process-vcf'
+
+generate_popfile:
+    "jobname": 'null-pop'
+
+generate_vcf:
+    "jobname": 'null-vcf'
