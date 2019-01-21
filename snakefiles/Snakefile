@@ -122,9 +122,8 @@ rule sstar_window:
         paths['window_calc']
 
     shell:
-        "module load anaconda \n"
-        "python {paths[sstar_dir]}"
-            "/freezing-archer/bin/windowed_calculations.py "
+        "~/software/anaconda2/bin/python {paths[sstar_dir]}"
+            "/bin/windowed_calculations.py "
             "--vcf-has-illumina-chrnums "
             "-vcfz {input.mod} "
             "-indf {input.pop} "
@@ -332,7 +331,7 @@ rule match_pct_pvalue:
             '--match-pct-database {input.match_db} '
             '--informative-site-method {config[match_pct][informative_site_method]} '
             '--informative-site-range {config[match_pct][informative_site_range]} '
-            '--overlap-regions {input.overlap} '
+           #'--overlap-regions {input.overlap} '
             '| bgzip > {output}'
 
 rule generate_ecdf:
@@ -482,11 +481,11 @@ rule calc_admix:
     shell:
         'zcat {input.asn} | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
-            '{{print "ASN: " sum_bp/{config[msprime][ASN]}/1000/{config[msprime][length]}}} \' '
+            '{{print "ASN: " sum_bp/{config[msprime][ASN]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '> {output} \n'
         'zcat {input.eur} | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
-            '{{print "EUR: " sum_bp/{config[msprime][EUR]}/1000/{config[msprime][length]}}} \' '
+            '{{print "EUR: " sum_bp/{config[msprime][EUR]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '>> {output}'
 
 rule calc_deserts:
@@ -513,7 +512,7 @@ rule add_n1_n2:
 
     shell:
         'zcat {input} | '
-        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "0.1", "0.0"}}\' '
+        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' '
         '> {output} '
 
 rule significant_windows:
