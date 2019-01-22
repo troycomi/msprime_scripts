@@ -64,5 +64,3 @@ dependencies:
   - r-stringr=1.1.0=r3.3.2_0
   - r-tibble=1.2=r3.3.2_0
   - r-tidyr=0.6.0=r3.3.2_0
-prefix: /tigress/tcomi/.conda/sstar_ecdf
-
