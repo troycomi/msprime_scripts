@@ -16,6 +16,7 @@ paths:
     chr_list: "__BASE_OUTPUT__/{directory}/{model}.chr_list"
     options: "__BASE_OUTPUT__/{directory}/options.txt"
     raw_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed,\\d+}.vcf.gz"
+    raw_vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
     mod_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz"
     mod_tbi: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz.tbi"
     arch_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.ARCHAIC.vcf.gz"
@@ -53,6 +54,8 @@ msprime:
     n2: 0.0
     EUR: 1006
     ASN: 1008
+
+    batch_size: 10
 
     null_simulations: 5000
     null_params: " -n 0.0 -d 0.0 \

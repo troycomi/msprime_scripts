@@ -30,16 +30,6 @@ dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
 paths = clean_config_paths(paths)
 
-def all_input(wildcards):
-    result = expand(paths['options'],
-                     directory=dirs.values())
-    result.append(paths['config_copy'])
-    result.append(paths['sstar_out'])
-    if config['msprime']['length'] >= 10000000:
-        result.append(paths['below_thresh'])
-
-    return result
-
 localrules: 
     all,
     config_copy,
@@ -48,10 +38,65 @@ localrules:
     generate_options,
     haplotype_to_sample
 
+# anonymous rule to group simulations
+batch = config['msprime']['batch_size']
+null_files = expand(paths['window_calc'],
+                       directory=dirs['null'],
+                       seed=null_seeds)
+null_files = [null_files[i:i+batch]
+                 for i in range(0,len(null_files), batch)]
+
+admixed_files = expand(paths['window_calc'],
+                       directory=dirs['admixed'],
+                       seed=admixed_seeds)
+admixed_files = [admixed_files[i:i+batch]
+                 for i in range(0,len(admixed_files), batch)]
+
+def all_input(wildcards):
+    result = expand(paths['options'],
+                     directory=dirs.values())
+    result.extend(expand(paths['raw_vcf_batch'],
+                         directory=dirs['null'],
+                         id=range(len(null_files))))
+    result.extend(expand(paths['raw_vcf_batch'],
+                         directory=dirs['admixed'],
+                         id=range(len(admixed_files))))
+    result.append(paths['config_copy'])
+    result.append(paths['sstar_out'])
+    if config['msprime']['length'] >= 10000000:
+        result.append(paths['below_thresh'])
+
+    return result
+
 rule all:
     input:
         all_input
             
+for i, files in enumerate(admixed_files):
+    f = paths['raw_vcf_batch'].format(
+                                directory=dirs['admixed'],
+                                id=i)
+
+    rule:
+        input:
+            files
+
+        output: temp(touch(f))
+
+        group: 'vcf_to_sstar'
+for i, files in enumerate(null_files):
+    f = paths['raw_vcf_batch'].format(
+                                directory=dirs['null'],
+                                id=i)
+
+    rule:
+        input:
+            files
+
+        output: temp(touch(f))
+
+        group: 'vcf_to_sstar'
+
 rule config_copy:
     output:
         paths['config_copy']
