@@ -30,9 +30,37 @@ dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
 paths = clean_config_paths(paths)
 
+localrules: 
+    all,
+    config_copy,
+    generate_chr_list,
+    generate_popfile,
+    generate_options,
+    haplotype_to_sample
+
+# anonymous rule to group simulations
+batch = config['msprime']['batch_size']
+null_files = expand(paths['window_calc'],
+                       directory=dirs['null'],
+                       seed=null_seeds)
+null_files = [null_files[i:i+batch]
+                 for i in range(0,len(null_files), batch)]
+
+admixed_files = expand(paths['window_calc'],
+                       directory=dirs['admixed'],
+                       seed=admixed_seeds)
+admixed_files = [admixed_files[i:i+batch]
+                 for i in range(0,len(admixed_files), batch)]
+
 def all_input(wildcards):
     result = expand(paths['options'],
                      directory=dirs.values())
+    result.extend(expand(paths['raw_vcf_batch'],
+                         directory=dirs['null'],
+                         id=range(len(null_files))))
+    result.extend(expand(paths['raw_vcf_batch'],
+                         directory=dirs['admixed'],
+                         id=range(len(admixed_files))))
     result.append(paths['config_copy'])
     result.append(paths['sstar_out'])
     if config['msprime']['length'] >= 10000000:
@@ -44,11 +72,30 @@ rule all:
     input:
         all_input
             
-rule clean:
-    run:
-        out_dir = paths['base_output']
-        shell('rm -rf {out_dir} || echo no admixed files')
-        shell('rm slurm_out/* || echo no slurm output')
+for i, files in enumerate(admixed_files):
+    f = paths['raw_vcf_batch'].format(
+                                directory=dirs['admixed'],
+                                id=i)
+
+    rule:
+        input:
+            files
+
+        output: temp(touch(f))
+
+        group: 'vcf_to_sstar'
+for i, files in enumerate(null_files):
+    f = paths['raw_vcf_batch'].format(
+                                directory=dirs['null'],
+                                id=i)
+
+    rule:
+        input:
+            files
+
+        output: temp(touch(f))
+
+        group: 'vcf_to_sstar'
 
 rule config_copy:
     output:
@@ -82,21 +129,7 @@ rule generate_bed:
             '--haplo {output} ' 
             '{params}'
 
-def get_windows(wildcards):
-    if wildcards.directory == 'null':
-        return expand(paths['window_calc'],
-               directory=wildcards.directory,
-               seed=null_seeds)
-        
-    else:
-        return expand(paths['window_calc'],
-               directory=wildcards.directory,
-               seed=admixed_seeds)
-        
-rule make_chr_list:
-    input:
-        get_windows
-
+rule generate_chr_list:
     output:
         paths['chr_list']
 
@@ -121,9 +154,18 @@ rule sstar_window:
     output:
         paths['window_calc']
 
+    group: 'vcf_to_sstar'
+
     shell:
-        "~/software/anaconda2/bin/python {paths[sstar_dir]}"
-            "/bin/windowed_calculations.py "
+        "if module load anaconda ; then \n"
+            "PYTHON=python\n"
+            "BIN=/freezing-archer/bin/windowed_calculations.py\n"
+        "else \n"
+            "PYTHON=~/software/anaconda2/bin/python\n"
+            "BIN=/bin/window_calculations.py\n"
+        "fi\n"
+        "$PYTHON {paths[sstar_dir]}"
+            "$BIN "
             "--vcf-has-illumina-chrnums "
             "-vcfz {input.mod} "
             "-indf {input.pop} "
@@ -147,7 +189,8 @@ rule process_vcf:
         arch=paths['arch_vcf'],
         mod_tbi=paths['mod_tbi'],
         arch_tbi=paths['arch_tbi']
-        #TODO add in tbi as outputs, see if allel error resolves(mod and ARch)
+
+    group: 'vcf_to_sstar'
 
     shell:
         "module load samtools \n"
@@ -183,6 +226,8 @@ rule generate_vcf:
 
     conda:
         "../msprime.yml"
+
+    group: 'vcf_to_sstar'
 
     shell:
         'python {paths[msprime_script]} '
@@ -243,7 +288,6 @@ rule match_pct:
         "match_pvalue.yml"
 
     shell:
-        'touch {input.vcf_tbi} \n'
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
             '--populations {input.pop} '
@@ -306,7 +350,7 @@ rule match_pct_pvalue:
         vcf_tbi=paths['mod_tbi'],
         pop=paths['popfile'],
         match_db=paths['null_db'],
-        overlap=paths['combined_bed']
+        #overlap=paths['combined_bed']
 
     output:
         paths['pvalue_table']
@@ -319,7 +363,6 @@ rule match_pct_pvalue:
         "match_pvalue.yml"
 
     shell:
-        'touch {input.vcf_tbi} \n'
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
             '--archaic-populations {params.archaic} '
@@ -496,12 +539,14 @@ rule calc_deserts:
                    seed=admixed_seeds)
 
     output:
-        paths['desert_windows']
+        pipe(paths['desert_windows'])
+
+    group: 'desert'
 
     shell:
         'zcat {input} | '
-        'python split_chromosomes.py {config[msprime][length]} | '
-        'gzip -c > {output}'
+        'python split_chromosomes.py {config[msprime][length]} '
+        '> {output}'
 
 rule add_n1_n2:
     input:
@@ -510,8 +555,10 @@ rule add_n1_n2:
     output:
         pipe(paths['desert_windows_unzip'])
 
+    group: 'desert'
+
     shell:
-        'zcat {input} | '
+        'cat {input} | '
         'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' '
         '> {output} '
 
@@ -526,16 +573,16 @@ rule significant_windows:
     output:
         paths['below_thresh']
 
-    params:
-        indivs=lambda wildcards, input: sum(1 for line in open(input.pop)) * 2
-        
     conda:
         'sstar_ecdf.yml'
 
+    group: 'desert'
+
     shell:
-        'Rscript toPct_int.1_to_15Mb.R '
+        'INDIV=$(($(wc -l < {input.pop}) * 2))\n'
+        'Rscript toPct_Int.1_to_15Mb.R '
             '{input.windows} '
-            '{params.indivs} '
+            '$INDIV '
             '{config[msprime][model]} '
             '{config[window_thresh]} '
             '{input.chroms} '

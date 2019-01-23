@@ -119,5 +119,3 @@ dependencies:
     - git+https://github.com/lparsons/archaic_match
     - msgpack==0.5.6
     - tables==3.4.4
-#prefix: /tigress/tcomi/.conda/abwolf_match_pvalue_simulations
-prefix: /Genomics/grid/users/abwolf/.conda/abwolf_match_pvalue_simulations

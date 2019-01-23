@@ -1,17 +1,44 @@
+---
 __default__:
     "n": 1
     "memory": '1G'
-    "time": '0-2'
+    "time": '0-0:30'
     "jobname": 'snake'
 
-sstar_window:
-    "jobname": 'sstar-window'
+vcf_to_sstar:
+    "n": 4
+    "jobname": 'vcf-to-sstar'
 
-process_vcf:
-    "jobname": 'process-vcf'
+generate_bed:
+    "jobname": 'generate-bed'
 
-generate_popfile:
-    "jobname": 'null-pop'
+combine_introgressed_regions:
+    "jobname": 'combine-introgressed-regions'
 
-generate_vcf:
-    "jobname": 'null-vcf'
+match_pct:
+    "jobname": 'match-pct'
+
+build_db:
+    "jobname": 'build-db'
+
+generate_ecdf:
+    "jobname": 'generate-ecdf'
+
+match_pct_pvalue:
+    "jobname": 'match-pct-pvalue'
+
+ecdf_bed:
+    "jobname": 'ecdf-bed'
+
+desert:
+    "jobname": 'desert'
+    "n": 3
+
+merge_bed:
+    "jobname": 'merge-bed'
+
+split_pops:
+    "jobname": 'split-pops'
+
+calc_admix:
+    "jobname": 'calc-admix'
