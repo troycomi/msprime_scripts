@@ -1,9 +1,9 @@
 ---
 paths:
-    #path to Admixture_Simulate.py
+    # path to Admixture_Simulate.py
     msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/\
                      /src/Admixture_Simulation.py"
-    #path to sstar windowed calulation directory (Ben's bin)
+    # path to sstar windowed calulation directory (Ben's bin)
     sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git/"
     vcftools_bin: "/usr/local/bin/vcftools"
     bedops: "/usr/local/bin/"
@@ -16,7 +16,6 @@ paths:
     chr_list: "__BASE_OUTPUT__/{directory}/{model}.chr_list"
     options: "__BASE_OUTPUT__/{directory}/options.txt"
     raw_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed,\\d+}.vcf.gz"
-    raw_vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
     mod_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz"
     mod_tbi: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz.tbi"
     arch_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.ARCHAIC.vcf.gz"
@@ -36,7 +35,13 @@ paths:
     desert_windows_unzip: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.prop_blw_thrhld"
 
-    #Output directory for simulations etc.
+    # batch temp files
+    vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
+    match_counts_batch: "__NULL_DIR__/match_pct/{id}.temp"
+    pvalue_table_batch: "__ADMIXED_DIR__/match_pct/{id}.temp"
+    merge_split_batch: "__ECDF_BED_DIR__/{id}.temp"
+
+    # Output directory for simulations etc.
     base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}"
     admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir

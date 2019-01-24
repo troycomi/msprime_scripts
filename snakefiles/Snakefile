@@ -4,6 +4,8 @@ configfile: "config.yaml"
 import random
 import os
 from clean_config import clean_config_paths
+from get_batch_files import group_rule_input,\
+                               get_batch_files
 
 random.seed(1)
 null_seeds = random.sample(range(1, 1<<31),
@@ -36,31 +38,66 @@ localrules:
     generate_chr_list,
     generate_popfile,
     generate_options,
-    haplotype_to_sample
+    haplotype_to_sample,
 
-# anonymous rule to group simulations
 batch = config['msprime']['batch_size']
-null_files = expand(paths['window_calc'],
-                       directory=dirs['null'],
-                       seed=null_seeds)
-null_files = [null_files[i:i+batch]
-                 for i in range(0,len(null_files), batch)]
+group_inputs = []
+group_inputs.append(
+    group_rule_input(
+        key_name='admixed_vcf',
+        output_files=expand(paths['window_calc'],
+                            directory=dirs['admixed'],
+                            seed=admixed_seeds),
+        temp_file=paths['vcf_batch'].replace('{directory}',
+                                             dirs['admixed']),
+        group_name='vcf_to_sstar'))
 
-admixed_files = expand(paths['window_calc'],
-                       directory=dirs['admixed'],
-                       seed=admixed_seeds)
-admixed_files = [admixed_files[i:i+batch]
-                 for i in range(0,len(admixed_files), batch)]
+group_inputs.append(
+    group_rule_input(
+        key_name='null_vcf',
+        output_files=expand(paths['window_calc'],
+                            directory=dirs['null'],
+                            seed=null_seeds),
+        temp_file=paths['vcf_batch'].replace('{directory}',
+                                             dirs['null']),
+        group_name='vcf_to_sstar'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='null_match',
+        output_files=expand(paths['match_counts'],
+                            directory=dirs['null'],
+                            seed=null_seeds),
+        temp_file=paths['match_counts_batch'].replace('{directory}',
+                                             dirs['null']),
+        group_name='null_match'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='match_pvalue',
+        output_files=expand(paths['pvalue_table'],
+                            directory=dirs['admixed'],
+                            seed=admixed_seeds),
+        temp_file=paths['pvalue_table_batch'].replace('{directory}',
+                                             dirs['admixed']),
+        group_name='match_pvalue'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='merge_split',
+        output_files=expand(paths['ecdf_bed_merge_pop'],
+                            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                            population='ASN',
+                            seed=admixed_seeds),
+        temp_file=paths['merge_split_batch'],
+        group_name='merge_split'))
+
+group_outputs = get_batch_files(group_inputs, batch)
 
 def all_input(wildcards):
     result = expand(paths['options'],
                      directory=dirs.values())
-    result.extend(expand(paths['raw_vcf_batch'],
-                         directory=dirs['null'],
-                         id=range(len(null_files))))
-    result.extend(expand(paths['raw_vcf_batch'],
-                         directory=dirs['admixed'],
-                         id=range(len(admixed_files))))
     result.append(paths['config_copy'])
     result.append(paths['sstar_out'])
     if config['msprime']['length'] >= 10000000:
@@ -72,30 +109,13 @@ rule all:
     input:
         all_input
             
-for i, files in enumerate(admixed_files):
-    f = paths['raw_vcf_batch'].format(
-                                directory=dirs['admixed'],
-                                id=i)
+for out in group_outputs.values():
+    for i, files in enumerate(out.files):
+        rule:
+            input: files
+            output: temp(touch(out.get_temp_file(i)))
+            group: out.group_name
 
-    rule:
-        input:
-            files
-
-        output: temp(touch(f))
-
-        group: 'vcf_to_sstar'
-for i, files in enumerate(null_files):
-    f = paths['raw_vcf_batch'].format(
-                                directory=dirs['null'],
-                                id=i)
-
-    rule:
-        input:
-            files
-
-        output: temp(touch(f))
-
-        group: 'vcf_to_sstar'
 
 rule config_copy:
     output:
@@ -185,10 +205,10 @@ rule process_vcf:
     input: paths['raw_vcf']
 
     output:
-        mod=paths['mod_vcf'],
-        arch=paths['arch_vcf'],
-        mod_tbi=paths['mod_tbi'],
-        arch_tbi=paths['arch_tbi']
+        mod=temp(paths['mod_vcf']),
+        arch=temp(paths['arch_vcf']),
+        mod_tbi=temp(paths['mod_tbi']),
+        arch_tbi=temp(paths['arch_tbi'])
 
     group: 'vcf_to_sstar'
 
@@ -287,6 +307,8 @@ rule match_pct:
     conda:
         "match_pvalue.yml"
 
+    group: "null_match"
+
     shell:
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
@@ -301,7 +323,8 @@ rule build_db:
     input:
         expand(paths['match_counts'],
                directory=dirs['null'],
-               seed=null_seeds)
+               seed=null_seeds),
+        group_outputs['null_match'].get_temp_files()
 
     output:
         paths['null_db']
@@ -362,6 +385,8 @@ rule match_pct_pvalue:
     conda:
         "match_pvalue.yml"
 
+    group: "match_pvalue"
+
     shell:
         'archaic_match max-match-pct '
             '--vcf {input.vcf} '
@@ -383,7 +408,8 @@ rule generate_ecdf:
                                  directory=dirs['null']),
         expand(paths['window_calc'],
                seed=null_seeds,
-               directory=dirs['null'])
+               directory=dirs['null']),
+        group_outputs['null_vcf'].get_temp_files()
 
     output:
         paths['ecdf_data'].format(chrom=len(null_seeds))
@@ -412,6 +438,8 @@ rule ecdf_bed:
                seed=admixed_seeds,
                directory=dirs['admixed']),
         ecdf=paths['ecdf_data'].format(chrom=len(null_seeds)),
+        temp_files=group_outputs['admixed_vcf'].get_temp_files(),
+        temp_files2=group_outputs['match_pvalue'].get_temp_files(),
 
     output:
         expand(paths['ecdf_bed_files'],
@@ -447,6 +475,8 @@ rule merge_bed:
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
             .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
 
+    group: "merge_split"
+
     shell:
         'tail -n +2 {input} | '  # strip header
         '{paths[bedops]}/sort-bed - | '
@@ -462,14 +492,16 @@ rule split_pops:
         pop=paths['popfile']
 
     output:
-        paths['ecdf_bed_merge_pop']\
+        temp(paths['ecdf_bed_merge_pop']\
            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
-           .replace('{population}', 'ASN'),
-        paths['ecdf_bed_merge_pop']\
+           .replace('{population}', 'ASN')),
+        temp(paths['ecdf_bed_merge_pop']\
            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
-           .replace('{population}', 'EUR'),
+           .replace('{population}', 'EUR')),
+
+    group: "merge_split"
 
     run:
         import gzip
@@ -516,7 +548,8 @@ rule calc_admix:
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
                    .replace('{population}', 'EUR'),
-                   seed=admixed_seeds)
+                   seed=admixed_seeds),
+        temp_files=group_outputs['merge_split'].get_temp_files()
 
     output:
         paths['sstar_out']
@@ -536,7 +569,8 @@ rule calc_deserts:
         expand(paths['ecdf_bed_merge']\
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-                   seed=admixed_seeds)
+                   seed=admixed_seeds),
+        group_outputs['merge_split'].get_temp_files()
 
     output:
         pipe(paths['desert_windows'])

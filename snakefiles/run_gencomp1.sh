@@ -6,7 +6,7 @@ conda activate msprime_scripts
 set -euo pipefail
 
 ##to view dependency graph (use only a few seeds!)
-#snakemake --dag | dot -Tsvg > dag.svg
+#snakemake --dag --config null_simulations=1 admixed_simulations=1 | dot -Tsvg > dag.svg
 
 ##unlock if job was interrupted
 #snakemake --unlock

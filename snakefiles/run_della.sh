@@ -20,6 +20,6 @@ snakemake --cluster-config della_cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
-    --configfile myconfig.yaml
+    --configfile della_config.yaml
     #-R $(snakemake --list-input-changes) \
     #--rerun-incomplete
