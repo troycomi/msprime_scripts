@@ -7,6 +7,7 @@ __default__:
 
 vcf_to_sstar:
     "n": 1
+    "time": '0-2'
     "jobname": 'vcf-to-sstar'
 
 generate_bed:
@@ -22,12 +23,16 @@ build_db:
     "jobname": 'build-db'
 
 generate_ecdf:
+    "memory": '10G'
     "jobname": 'generate-ecdf'
+    "time": '1-0'
 
 match_pvalue:
     "jobname": 'match-pvalue'
 
 ecdf_bed:
+    "n": 5
+    "memory": '5G'
     "jobname": 'ecdf-bed'
 
 desert:

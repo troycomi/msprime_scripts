@@ -154,7 +154,8 @@ option_list = list(
     make_option(c("--matchpval"), action="store", default=0.05, type='numeric', help="Match pvalue cutoff for significance"),
     make_option(c("--nofilter"), action="store_true", default=TRUE, help="Print complete output, w/o filtering [default]"),
     make_option(c("--filter"), action="store_false", dest="nofilter", help="Print the filtered output"),
-    make_option(c("--ecdf_only"), action="store_true", dest="ecdf_only", default=FALSE, help="Generate the ecdfs and then exit")
+    make_option(c("--ecdf_only"), action="store_true", dest="ecdf_only", default=FALSE, help="Generate the ecdfs and then exit"),
+    make_option(c("--chromosome"), action="store", default=NA, type='character', help="Seed/chromosome to load")
 )
 
 opt <<- parse_args(OptionParser(option_list=option_list))
@@ -183,14 +184,16 @@ if ( file.exists(opt$ecdf) ){
 if (file.exists(ecdf_data)){
     print('LOAD ECDF DATA')
     print( ecdf_data )
+    # save option copy to prevent overwrite
+    OPT_COPY <- copy(opt)
     load(file = ecdf_data, verbose=TRUE)
+    opt <- OPT_COPY
     #print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
 } else {
     print('LOAD NULL DATA')
     sim_chrms <- fread(paste0('cat ',inputdir,dir,"/*.chr_list"))
     null.dt <- data.table(NULL)
     for( i in seq(1,as.numeric(maxchrm),by = 1)){
-    #for( i in seq(1,nrow(sim_chrms),by = 1)){
         c <- sim_chrms[i][[1]]
         print(paste0(' Loading NULL chromosome number: ',c))
         infile <- paste0(inputdir,dir,'/RegionFiles/', c,".windowcalc.gz")
@@ -216,9 +219,6 @@ if (file.exists(ecdf_data)){
      }
 }
 
-## Redefine the commandline options here incase there are some conflicting ones already in the RData file we just loaded
-commandline.arguments.fn()
-####################
 
 print('LOAD ADMIX DATA')
 
@@ -233,96 +233,93 @@ mdl <- opt$mdl
 admix <- opt$admix_tag
 dir <- opt$admix_dir
 maxchrm <- opt$max_chrm_admix
+chrom <- opt$chromosome
 
- sim_chrms <- fread(paste0('cat ',inputdir,dir,"/*.chr_list"))
- for( i in seq(1,as.numeric(maxchrm),by=1) ){
-    out <- data.table(NULL)
-    c <- sim_chrms[i][[1]]
-    print(paste0(' Loading ADMIX chromosome number: ',c))
-    infile <- paste0(inputdir,dir,'/RegionFiles/', c, ".windowcalc.gz")
-    if( length(readLines(infile)) == 0 ) { next }
+out <- data.table(NULL)
+print(paste0(' Loading ADMIX chromosome number: ',chrom))
+infile <- paste0(inputdir,dir,'/RegionFiles/', chrom, ".windowcalc.gz")
+if( length(readLines(infile)) == 0 ) { next }
 
-    dat <- fread(paste0('zcat ',infile), header=TRUE,
-                select=c('chrom','winstart','winend','n_region_ind_snps',
-                        'ind_id','pop','s_star','num_s_star_snps',
-                        'hap_1_s_start','hap_1_s_end','hap_2_s_start','hap_2_s_end',
-                        'n_s_star_snps_hap1','n_s_star_snps_hap2','s_star_haps'),
-                na.strings=c("NA", "None",'.'))
-                
-    print(' Run estimate.pval.ecdf.fn')
-    #out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn, max_snps=max_snps_ecdf)))
-    out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn)))
-    setnames(out,c("chrom","winstart","winend","ind_id","pop","s_star","n_region_ind_snps","sstarpval_region_ind_snps",
-              "num_s_star_snps","hap_1_s_start","hap_1_s_end","hap_2_s_start","hap_2_s_end",
-              "n_s_star_snps_hap1","n_s_star_snps_hap2","s_star_haps"))
-    print(' estimate.pval.fn complete')
+dat <- fread(paste0('zcat ',infile), header=TRUE,
+            select=c('chrom','winstart','winend','n_region_ind_snps',
+                    'ind_id','pop','s_star','num_s_star_snps',
+                    'hap_1_s_start','hap_1_s_end','hap_2_s_start','hap_2_s_end',
+                    'n_s_star_snps_hap1','n_s_star_snps_hap2','s_star_haps'),
+            na.strings=c("NA", "None",'.'))
+            
+print(' Run estimate.pval.ecdf.fn')
+#out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn, max_snps=max_snps_ecdf)))
+out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn)))
+setnames(out,c("chrom","winstart","winend","ind_id","pop","s_star","n_region_ind_snps","sstarpval_region_ind_snps",
+          "num_s_star_snps","hap_1_s_start","hap_1_s_end","hap_2_s_start","hap_2_s_end",
+          "n_s_star_snps_hap1","n_s_star_snps_hap2","s_star_haps"))
+print(' estimate.pval.fn complete')
 
-    out[,chrom:=as.numeric(chrom)]
-    out[,winstart:=as.numeric(winstart)]
-    out[,winend:=as.numeric(winend)]
-    out[,ind_id:=as.character(ind_id)]
-    out[,pop:=as.character(pop)]
-    out[,s_star:=as.numeric(s_star)]
-    out[,sstarpval_region_ind_snps:=as.numeric(sstarpval_region_ind_snps)]
+out[,chrom:=as.numeric(chrom)]
+out[,winstart:=as.numeric(winstart)]
+out[,winend:=as.numeric(winend)]
+out[,ind_id:=as.character(ind_id)]
+out[,pop:=as.character(pop)]
+out[,s_star:=as.numeric(s_star)]
+out[,sstarpval_region_ind_snps:=as.numeric(sstarpval_region_ind_snps)]
 
-    print(' Assign S* haplotype')
+print(' Assign S* haplotype')
 
-    req.snp.frac <- 0.8
-    out$s_star_hap_1 <- (as.numeric(out$n_s_star_snps_hap1) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
-    out$s_star_hap_2 <- (as.numeric(out$n_s_star_snps_hap2) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
+req.snp.frac <- 0.8
+out$s_star_hap_1 <- (as.numeric(out$n_s_star_snps_hap1) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
+out$s_star_hap_2 <- (as.numeric(out$n_s_star_snps_hap2) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
 
-    print(' Define haplotype sets')
-    hap_1 = out[s_star_hap_1==TRUE & s_star_hap_2==FALSE]
-    hap_2 = out[s_star_hap_1==FALSE & s_star_hap_2==TRUE]
+print(' Define haplotype sets')
+hap_1 = out[s_star_hap_1==TRUE & s_star_hap_2==FALSE]
+hap_2 = out[s_star_hap_1==FALSE & s_star_hap_2==TRUE]
 
-    hap_1[,haplotype:=1]
-    hap_2[,haplotype:=2]
+hap_1[,haplotype:=1]
+hap_2[,haplotype:=2]
 
-    print(' rbind')
-    out = rbind(
-      hap_1,
-      hap_2
-    )
+print(' rbind')
+out = rbind(
+  hap_1,
+  hap_2
+)
 
-    out[,msp_ID:=paste0(ind_id,':',haplotype,'_',chrom)]
-    out = out  %>% arrange(msp_ID, winstart, winend) %>% as.data.table()
+out[,msp_ID:=paste0(ind_id,':',haplotype,'_',chrom)]
+out = out  %>% arrange(msp_ID, winstart, winend) %>% as.data.table()
 
-    #######################
+#######################
 
-    print(paste0(' Loading MATCHPVAL chromosome number: ',c))
-    infile <- paste0(inputdir,dir,'/match_pct/',c,".tsv.gz")
-    admix.match_pvals <- fread(paste0('zcat ',infile), header=TRUE,
-                                select=c('chr','start','end','haplotype','pvalue'),
-                                col.names=c('chrom','winstart','winend','ID','match_pvalue'))
-    admix.match_pvals[,msp_ID:=paste0(ID,'_',chrom)]
-    admix.match_pvals = admix.match_pvals %>% arrange(msp_ID, winstart, winend) %>% as.data.table()
+print(paste0(' Loading MATCHPVAL chromosome number: ',chrom))
+infile <- paste0(inputdir,dir,'/match_pct/',chrom,".tsv.gz")
+admix.match_pvals <- fread(paste0('zcat ',infile), header=TRUE,
+                            select=c('chr','start','end','haplotype','pvalue'),
+                            col.names=c('chrom','winstart','winend','ID','match_pvalue'))
+admix.match_pvals[,msp_ID:=paste0(ID,'_',chrom)]
+admix.match_pvals = admix.match_pvals %>% arrange(msp_ID, winstart, winend) %>% as.data.table()
 
 
-    print(' Assign matchpvals')
-    out <- left_join(out, admix.match_pvals, by = c('msp_ID', 'winstart', 'winend')) %>% as.data.table()
+print(' Assign matchpvals')
+out <- left_join(out, admix.match_pvals, by = c('msp_ID', 'winstart', 'winend')) %>% as.data.table()
 
-    remove(admix.match_pvals)
+remove(admix.match_pvals)
 
-    ######################
+######################
 
-    print(' WRITE OUTPUT TABLES')
-    print(paste0(' nofilter flag: ',opt$nofilter))
+print(' WRITE OUTPUT TABLES')
+print(paste0(' nofilter flag: ',opt$nofilter))
 
-    if( opt$nofilter==FALSE ){
-    write.filtered.bed.fn(dt = out,
-    		outputdir = as.character(opt$outputdir),
-    		mdl = opt$mdl,
-            chrom = c,
-    		admix = opt$admix_tag,
-    		spval = opt$sstarpval,
-    		matchpval = opt$matchpval)
-    } else {
-    write.all.bed.fn(dt = out,
-    		outputdir = as.character(opt$outputdir),
-    		mdl = opt$mdl,
-            chrom = c,
-    		admix = opt$admix_tag)
-    }
- }
+if( opt$nofilter==FALSE ){
+write.filtered.bed.fn(dt = out,
+        outputdir = as.character(opt$outputdir),
+        mdl = opt$mdl,
+        chrom = chrom,
+        admix = opt$admix_tag,
+        spval = opt$sstarpval,
+        matchpval = opt$matchpval)
+} else {
+write.all.bed.fn(dt = out,
+        outputdir = as.character(opt$outputdir),
+        mdl = opt$mdl,
+        chrom = chrom,
+        admix = opt$admix_tag)
+}
 
 print(' FIN')

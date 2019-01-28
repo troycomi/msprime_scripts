@@ -93,6 +93,16 @@ group_inputs.append(
         temp_file=paths['merge_split_batch'],
         group_name='merge_split'))
 
+group_inputs.append(
+    group_rule_input(
+        key_name='ecdf_bed',
+        output_files=expand(paths['ecdf_bed_files'],
+                            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                            seed=admixed_seeds),
+        temp_file=paths['ecdf_bed_batch'],
+        group_name='ecdf_bed'))
+
 group_outputs = get_batch_files(group_inputs, batch)
 
 def all_input(wildcards):
@@ -431,27 +441,24 @@ rule ecdf_bed:
     input:
         paths['chr_list'].format(model=model,
                                  directory=dirs['admixed']),
-        expand(paths['window_calc'],
-               seed=admixed_seeds,
-               directory=dirs['admixed']),
-        expand(paths['pvalue_table'],
-               seed=admixed_seeds,
-               directory=dirs['admixed']),
+        paths['window_calc'].replace('{directory}', dirs['admixed']),
+        paths['pvalue_table'].replace('{directory}', dirs['admixed']),
         ecdf=paths['ecdf_data'].format(chrom=len(null_seeds)),
         temp_files=group_outputs['admixed_vcf'].get_temp_files(),
         temp_files2=group_outputs['match_pvalue'].get_temp_files(),
 
     output:
-        expand(paths['ecdf_bed_files'],
-               seed=admixed_seeds,
-               sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
-               matchpvalue=config['s_star_ecdf']['matchpvalue'])
+        paths['ecdf_bed_files']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
 
     params:
         chrom=len(admixed_seeds)
 
     conda:
         "sstar_ecdf.yml"
+
+    group: 'ecdf_bed'
 
     shell:
         'Rscript SstarECDFpvalueCalculation.R '
@@ -462,13 +469,15 @@ rule ecdf_bed:
             '--ecdf {input.ecdf} '
             '--sstarpval {config[s_star_ecdf][sstarpvalue]} ' 
             '--matchpval {config[s_star_ecdf][matchpvalue]} ' 
+            '--chromosome {wildcards.seed} '
             '{config[s_star_ecdf][filter]} &> /dev/null' 
 
 rule merge_bed:
     input:
         paths['ecdf_bed_files']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+        group_outputs['ecdf_bed'].get_temp_files()
 
     output:
         paths['ecdf_bed_merge']\
@@ -478,7 +487,7 @@ rule merge_bed:
     group: "merge_split"
 
     shell:
-        'tail -n +2 {input} | '  # strip header
+        'tail -n +2 {input[0]} | '  # strip header
         '{paths[bedops]}/sort-bed - | '
         '{paths[bedops]}/bedops --merge - | '
         'gzip -c - '
