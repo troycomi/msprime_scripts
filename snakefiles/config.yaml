@@ -1,10 +1,11 @@
 ---
 paths:
-    #path to Admixture_Simulate.py
-    msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/\
-                     /src/Admixture_Simulation.py"
-    #path to sstar windowed calulation directory (Ben's bin)
-    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git/"
+    # path to Admixture_Simulate.py
+    msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/\
+                     msprime/bin/src/Admixture_Simulation.py"
+    # path to sstar windowed calulation directory (Ben's bin)
+    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/\
+                Sstar/s_star_git/"
     vcftools_bin: "/usr/local/bin/vcftools"
     bedops: "/usr/local/bin/"
 
@@ -16,7 +17,6 @@ paths:
     chr_list: "__BASE_OUTPUT__/{directory}/{model}.chr_list"
     options: "__BASE_OUTPUT__/{directory}/options.txt"
     raw_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed,\\d+}.vcf.gz"
-    raw_vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
     mod_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz"
     mod_tbi: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.vcf.gz.tbi"
     arch_vcf: "__BASE_OUTPUT__/{directory}/vcfs/{seed}.mod.ARCHAIC.vcf.gz"
@@ -27,16 +27,27 @@ paths:
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     ecdf_data: "__NULL_DIR__/SstarECDF_maxchrm_{chrom}.RData.gz"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
-    ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed"
-    ecdf_bed_merge: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged.gz"
-    ecdf_bed_merge_pop: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}.match_sig_N_{matchpvalue}.isc_0.bed.merged_{population}.gz"
+    ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
+                     .match_sig_N_{matchpvalue}.isc_0.bed"
+    ecdf_bed_merge: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
+                     .match_sig_N_{matchpvalue}.isc_0.bed.merged.gz"
+    ecdf_bed_merge_pop: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
+                         .match_sig_N_{matchpvalue}\
+                         .isc_0.bed.merged_{population}.gz"
 
     sstar_out: "__ADMIXED_DIR__/admixture_Sstar.txt"
     desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.gz"
     desert_windows_unzip: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.prop_blw_thrhld"
 
-    #Output directory for simulations etc.
+    # batch temp files
+    vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
+    match_counts_batch: "__NULL_DIR__/match_pct/{id}.temp"
+    pvalue_table_batch: "__ADMIXED_DIR__/match_pct/{id}.temp"
+    merge_split_batch: "__ECDF_BED_DIR__/ms_{id}.temp"
+    ecdf_bed_batch: "__ECDF_BED_DIR__/eb_{id}.temp"
+
+    # Output directory for simulations etc.
     base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}"
     admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
@@ -73,9 +84,6 @@ s_star:
     window_step_size: "10000"
 
 match_pct:
-#    null_name: "migration_null_10k"
-#    admixed_name: "0.05_pct"
-
     archaic:
         - "Neand1"
     modern:
@@ -91,7 +99,7 @@ match_pct:
     informative_site_range: "0"
 
 s_star_ecdf:
-    # Note, to have no filter, set p values to "ALL" and have filter = "--nofilter"
+    # Note, to have no filter, set p values to "ALL" and filter to "--nofilter"
     sstarpvalue: "0.01"
     matchpvalue: "0.05"
     filter: "--filter"

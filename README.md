@@ -54,5 +54,14 @@ slurmJobs directory.  The behavior of the submission is customized within
 the submit script which performs some basic operations before submitting
 the slurm array job.
 
+### Seff Examination
+The reportSeff and formatSeff scripts can be used to automatically
+view seff information from the slurmout files.  From the snakemake directory
+```
+./reportSeff.sh slurm_out/ | python formatSeff.py
+```
+Depending on the size of the output, pipe through less or write to an output
+file.
+
 ## License
 TBD
