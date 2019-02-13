@@ -173,68 +173,6 @@ rule generate_chr_list:
             for s in sorted(seeds):
                 writer.write('{}\n'.format(s))
         
-rule sstar_window:
-    input:
-        pop=paths['popfile'],
-        mod=paths['mod_vcf'],
-        mod_tbi=paths['mod_tbi'],
-        arch_tbi=paths['arch_tbi'],
-        arch=paths['arch_vcf']
-
-    output:
-        paths['window_calc']
-
-    group: 'vcf_to_sstar'
-
-    shell:
-        "if module load anaconda ; then \n"
-            "PYTHON=python\n"
-            "BIN=/freezing-archer/bin/windowed_calculations.py\n"
-        "else \n"
-            "PYTHON=~/software/anaconda2/bin/python\n"
-            "BIN=/bin/window_calculations.py\n"
-        "fi\n"
-        "$PYTHON {paths[sstar_dir]}"
-            "$BIN "
-            "--vcf-has-illumina-chrnums "
-            "-vcfz {input.mod} "
-            "-indf {input.pop} "
-            "-target-pops EUR ASN "
-            "-ref-pops AFR "
-            "--archaic-vcf {input.arch} "
-            "-p 10 "
-            "-s-star "
-            "-winlen {config[s_star][window_size]} "
-            "-winstep {config[s_star][window_step_size]} "
-            "-no-pvalues "
-            "-range 0 {config[msprime][length]} "
-            "2>/dev/null "
-            "| gzip -c - > {output}"
-
-rule process_vcf:
-    input: paths['raw_vcf']
-
-    output:
-        mod=temp(paths['mod_vcf']),
-        arch=temp(paths['arch_vcf']),
-        mod_tbi=temp(paths['mod_tbi']),
-        arch_tbi=temp(paths['arch_tbi'])
-
-    group: 'vcf_to_sstar'
-
-    shell:
-        "module load samtools \n"
-        "zcat {input} | "
-            "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
-                "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
-            "bgzip -c > {output.mod} \n"
-        "tabix -fp vcf {output.mod} \n"
-        "{paths[vcftools_bin]} --gzvcf {output.mod} "
-            "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
-            "--recode --stdout 2>/dev/null | "
-            "bgzip -c > {output.arch} \n"
-        "tabix -fp vcf {output.arch}"
-
 rule generate_popfile:
     output:
         paths['popfile']
@@ -266,6 +204,69 @@ rule generate_vcf:
             '--vcf {output} ' 
             '{params}'
 
+rule process_vcf:
+    input: rules.generate_vcf.output
+
+    output:
+        mod=temp(paths['mod_vcf']),
+        arch=temp(paths['arch_vcf']),
+        mod_tbi=temp(paths['mod_tbi']),
+        arch_tbi=temp(paths['arch_tbi'])
+
+    group: 'vcf_to_sstar'
+
+    shell:
+        "module load samtools \n"
+        "zcat {input} | "
+            "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
+                "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
+            "bgzip -c > {output.mod} \n"
+        "tabix -fp vcf {output.mod} \n"
+        "{paths[vcftools_bin]} --gzvcf {output.mod} "
+            "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
+            "--recode --stdout 2>/dev/null | "
+            "bgzip -c > {output.arch} \n"
+        "tabix -fp vcf {output.arch}"
+
+rule sstar_window:
+    input:
+        pop=rules.generate_popfile.output,
+        mod=rules.process_vcf.output.mod,
+        mod_tbi=rules.process_vcf.output.mod_tbi,
+        arch_tbi=rules.process_vcf.output.arch_tbi,
+        arch=rules.process_vcf.output.arch
+
+    output:
+        paths['window_calc']
+
+    group: 'vcf_to_sstar'
+
+    shell:
+        "if [[ {paths[sstar_dir]} == /Genomics* ]]; then \n"
+            "PYTHON=~/software/anaconda2/bin/python\n"
+            "BIN=/bin/windowed_calculations.py\n"
+        "else \n"
+            "module load anaconda\n" 
+            "PYTHON=python\n"
+            "BIN=/freezing-archer/bin/windowed_calculations.py\n"
+        "fi\n"
+        "$PYTHON {paths[sstar_dir]}"
+            "$BIN "
+            "--vcf-has-illumina-chrnums "
+            "-vcfz {input.mod} "
+            "-indf {input.pop} "
+            "-target-pops EUR ASN "
+            "-ref-pops AFR "
+            "--archaic-vcf {input.arch} "
+            "-p 10 "
+            "-s-star "
+            "-winlen {config[s_star][window_size]} "
+            "-winstep {config[s_star][window_step_size]} "
+            "-no-pvalues "
+            "-range 0 {config[msprime][length]} "
+            "2>/dev/null "
+            "| gzip -c - > {output}"
+
 rule generate_options:
     output:
         paths['options']
@@ -287,7 +288,7 @@ rule haplotype_to_sample:
         paths['haplotype_map']
 
     input:
-        paths['popfile']
+        rules.generate_popfile.output
 
     run:
         with open(input[0], 'r') as reader, \
@@ -303,9 +304,9 @@ rule haplotype_to_sample:
 
 rule match_pct:
     input:
-        vcf=paths['mod_vcf'],
-        vcf_tbi=paths['mod_tbi'],
-        pop=paths['popfile']
+        vcf=rules.process_vcf.output.mod,
+        vcf_tbi=rules.process_vcf.output.mod_tbi,
+        pop=rules.generate_popfile.output
 
     output:
         temp(paths['match_counts'])
@@ -357,7 +358,7 @@ rule combine_introgressed_regions:
         regions=expand(paths['bedfile'],
                        seed=admixed_seeds,
                        directory=dirs['admixed']),
-        sample_map=paths['haplotype_map']
+        sample_map=rules.haplotype_to_sample.output
 
     output:
         paths['combined_bed']
@@ -379,10 +380,10 @@ rule combine_introgressed_regions:
 
 rule match_pct_pvalue:
     input:
-        vcf=paths['mod_vcf'],
-        vcf_tbi=paths['mod_tbi'],
-        pop=paths['popfile'],
-        match_db=paths['null_db'],
+        vcf=rules.process_vcf.output.mod,
+        vcf_tbi=rules.process_vcf.output.mod_tbi,
+        pop=rules.generate_popfile.output,
+        match_db=rules.build_db.output,
         #overlap=paths['combined_bed']
 
     output:
@@ -498,7 +499,7 @@ rule split_pops:
         bed=paths['ecdf_bed_merge']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
             .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-        pop=paths['popfile']
+        pop=rules.generate_popfile.output
 
     output:
         temp(paths['ecdf_bed_merge_pop']\
@@ -607,11 +608,11 @@ rule add_n1_n2:
 
 rule significant_windows:
     input:
-        windows=paths['desert_windows_unzip'],
+        windows=rules.calc_deserts.output,
         chroms=paths['chr_list']\
             .replace('{directory}', dirs['admixed'])\
             .replace('{model}', model),
-        pop=paths['popfile']
+        pop=rules.generate_popfile.output
 
     output:
         paths['below_thresh']

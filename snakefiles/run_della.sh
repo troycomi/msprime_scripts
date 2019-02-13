@@ -5,6 +5,9 @@ conda activate msprime_scripts
 
 set -euo pipefail
 
+# make slurm_out if not exists
+[[ -d slurm_out ]] || mkdir slurm_out
+
 ## to view dependency graph (use only a few seeds!)
 #snakemake --dag | dot -Tsvg > dag.svg
 

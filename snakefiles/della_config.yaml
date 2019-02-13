@@ -8,7 +8,7 @@ paths:
     bedops: "/tigress/AKEY/akey_vol1/software/bedops/bin"
 
     base_output: "/tigress/tcomi/abwolf_abc/{model}"
-    admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    admixed_dir: "__BASE_OUTPUT__/n1_0.3_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
 
@@ -58,7 +58,7 @@ msprime:
     # in other parts of the workflow as well
     model: "Sriram"
     length: 1000000
-    n1: 0.1
+    n1: 0.3
     n2: 0.0
     EUR: 1006
     ASN: 1008
@@ -71,7 +71,7 @@ msprime:
                   -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                   -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 100
+    admixed_simulations: 1000
     admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                       -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                       -G AF_B_0 -G B_AF_0"
