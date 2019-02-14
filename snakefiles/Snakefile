@@ -500,7 +500,7 @@ rule split_pops:
         bed=paths['ecdf_bed_merge']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
             .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-        pop=rules.generate_popfile.output
+        pop=rules.generate_popfile.output[0]
 
     output:
         temp(paths['ecdf_bed_merge_pop']\
