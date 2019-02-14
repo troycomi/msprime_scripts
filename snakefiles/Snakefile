@@ -241,16 +241,16 @@ rule sstar_window:
 
     group: 'vcf_to_sstar'
 
+    conda: 
+        'sstar.yml'
+
     shell:
         "if [[ {paths[sstar_dir]} == /Genomics* ]]; then \n"
-            "PYTHON=~/software/anaconda2/bin/python\n"
             "BIN=/bin/windowed_calculations.py\n"
         "else \n"
-            "module load anaconda\n" 
-            "PYTHON=python\n"
             "BIN=/freezing-archer/bin/windowed_calculations.py\n"
         "fi\n"
-        "$PYTHON {paths[sstar_dir]}"
+        "python {paths[sstar_dir]}"
             "$BIN "
             "--vcf-has-illumina-chrnums "
             "-vcfz {input.mod} "
@@ -265,7 +265,8 @@ rule sstar_window:
             "-no-pvalues "
             "-range 0 {config[msprime][length]} "
             "2>/dev/null "
-            "| gzip -c - > {output}"
+            "| gzip -c - > {output}\n"
+
 
 rule generate_options:
     output:

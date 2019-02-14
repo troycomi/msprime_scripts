@@ -72,7 +72,7 @@ class Base_demography(object):
         )
 
     def print_debug(self, output):
-        print(np.matrix(self.get_migration_matrix()), file=output)
+        print(np.array(self.get_migration_matrix()), file=output)
         msprime.DemographyDebugger(
             Ne=self.N_A,
             population_configurations=self.get_debug_configuration(),
@@ -1312,6 +1312,7 @@ class SplitPop_demography(Base_demography):
 class Out_of_africa_demography(Base_demography):
     def simulate(self, replicates):
         raise NotImplementedError
+
     def set_constants(self):
         Base_demography.set_constants(self)
 

@@ -54,7 +54,7 @@ def get_model(options):
         print("implemented models are:", file=sys.stderr)
         for m in models.keys():
             print("\t" + m, file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("unsupported model: {}".format(options.model))
 
     return model
 

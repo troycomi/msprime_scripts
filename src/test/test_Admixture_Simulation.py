@@ -1,6 +1,9 @@
 import pytest
 import collections
 from Admixture_Simulation import merge_dict
+import Admixture_Simulation
+import Option_Parser
+import Demography_Models
 
 
 def test_merge_dict_build():
@@ -72,3 +75,20 @@ def test_merge_dict_overlap(three_elem):
 
     merge_dict(d, ('10', 15, 451))
     assert d['10'] == [[15], [451]]
+
+
+def test_get_model():
+    parser = Option_Parser.admixture_option_parser()
+    opts = parser.parse_args([])
+
+    assert type(Admixture_Simulation.get_model(opts)) == \
+        Demography_Models.Tenn_demography
+    opts.model = "SplitPop"
+    assert type(Admixture_Simulation.get_model(opts)) == \
+        Demography_Models.SplitPop_demography
+
+    with pytest.raises(ValueError) as e:
+        opts.model = "NONE"
+        Admixture_Simulation.get_model(opts)
+
+    assert "unsupported model: NONE" in str(e)

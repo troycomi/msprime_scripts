@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#module load anaconda3
+source ~/.bashrc
 conda activate msprime_scripts
 
 set -euo pipefail

@@ -2,6 +2,7 @@ import pytest
 import Option_Parser
 import Demography_Models
 import msprime
+import io
 
 
 @pytest.fixture
@@ -219,12 +220,76 @@ def test_migration_matrix(default, nonDefault):
          [0,   0,  0,  0,  0,  0,  0]]
 
 
+def test_invalid_migration():
+    with pytest.raises(ValueError) as e:
+        options = Option_Parser.admixture_option_parser()\
+            .parse_args(['-g', 'AU_AF_1.5e-5'])
+        Demography_Models.Base_demography(options).simulate(1)
+
+    assert 'AU not a known population' in str(e)
+
+    with pytest.raises(ValueError) as e:
+        options = Option_Parser.admixture_option_parser()\
+            .parse_args(['-g', 'EU_AF_NUMBER'])
+        Demography_Models.Base_demography(options).simulate(1)
+
+    assert 'could not convert' in str(e)
+
+
+def test_print_debug(default, nonDefault):
+    output = io.StringIO()
+    default.print_debug(output)
+    output = output.getvalue().split('\n')
+
+    # test contents of migration matrix
+    assert '2.50e-05' in output[2]
+    assert '7.80e-06' in output[2]
+
+    # test length of migration matrix
+    assert 'Epoch: 0' in output[8]
+
+    # random line late in output
+    assert 'initial_size -> 7310' in output[198]
+
+    output = io.StringIO()
+    nonDefault.print_debug(output)
+    output = output.getvalue().split('\n')
+
+    with open('test2.txt', 'w') as writer:
+        for i, l in enumerate(output):
+            writer.write(f"{i}\t|{l}\n")
+
+    # test contents of migration matrix
+    assert '1.50e-05' in output[2]
+    assert '7.90e-06' in output[2]
+
+    # test length of migration matrix
+    assert 'Epoch: 0' in output[8]
+
+    # random line late in output
+    assert 'initial_size -> 7310' in output[198]
+
+
+def test_long_name_map(default):
+    name_map = default.get_long_name_map()
+    assert name_map[0] == 'Neand1'
+    assert name_map[1] == 'Neand2'
+    assert name_map[2] == 'AFR'
+    assert name_map[3] == 'EUR'
+    assert name_map[4] == 'ASN'
+    assert name_map[5] == 'Chimp'
+    assert name_map[6] == 'Deni'
+
+
 def test_construction():
     parser = Option_Parser.admixture_option_parser()
     options = parser.parse_args([])
 
+    Demography_Models.Base_demography(options).simulate(1)
+    Demography_Models.Tenn_demography(options).simulate(1)
     Demography_Models.Tenn_no_modern_migration(options).simulate(1)
     Demography_Models.Tenn_pulsed_migration(options).simulate(1)
     Demography_Models.Sriram_demography(options).simulate(1)
     Demography_Models.SplitPop_demography(options).simulate(1)
-    Demography_Models.Out_of_africa_demography(options)
+    with pytest.raises(NotImplementedError):
+        Demography_Models.Out_of_africa_demography(options).simulate(1)
