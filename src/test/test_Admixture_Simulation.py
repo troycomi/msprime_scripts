@@ -1,6 +1,11 @@
 import pytest
 import collections
 from Admixture_Simulation import merge_dict
+import Admixture_Simulation
+import Option_Parser
+import Demography_Models
+import File_Printer
+import io
 
 
 def test_merge_dict_build():
@@ -72,3 +77,81 @@ def test_merge_dict_overlap(three_elem):
 
     merge_dict(d, ('10', 15, 451))
     assert d['10'] == [[15], [451]]
+
+
+def test_get_model():
+    parser = Option_Parser.admixture_option_parser()
+    opts = parser.parse_args([])
+
+    assert type(Admixture_Simulation.get_model(opts)) == \
+        Demography_Models.Tenn_demography
+    opts.model = "SplitPop"
+    assert type(Admixture_Simulation.get_model(opts)) == \
+        Demography_Models.SplitPop_demography
+
+    with pytest.raises(ValueError) as e:
+        opts.model = "NONE"
+        Admixture_Simulation.get_model(opts)
+
+    assert "unsupported model: NONE" in str(e)
+
+
+def test_tree_running():
+    parser = Option_Parser.admixture_option_parser()
+    opts = parser.parse_args([])
+    sim = Demography_Models.Tenn_demography(opts).simulate(1)
+    entries = Admixture_Simulation.get_haplo_entries(next(sim), opts)
+    assert entries == {}
+
+
+def test_get_samples():
+    parser = Option_Parser.admixture_option_parser()
+    opts = parser.parse_args([])
+
+    samp = Admixture_Simulation.get_human_samples(opts)
+    assert samp == range(6, 2020)
+
+    opts.pop = "AFR"
+    samp = Admixture_Simulation.get_human_samples(opts)
+    assert samp == range(4, 6)
+
+    with pytest.raises(ValueError) as e:
+        opts.pop = "NONE"
+        samp = Admixture_Simulation.get_human_samples(opts)
+
+    assert "unknown human sample: NONE" in str(e)
+
+
+def test_write_f4dstats():
+    parser = Option_Parser.admixture_option_parser()
+    opts = parser.parse_args([])
+
+    with File_Printer.file_printer(opts) as fp:
+        ind = io.StringIO()
+        fp.writers['ind'] = ind
+        eigen = io.BytesIO()
+        fp.writers['eigen'] = eigen
+        snp = io.StringIO()
+        fp.writers['snp'] = snp
+
+        model = Demography_Models.Tenn_demography(opts)
+        sim = model.simulate(1)
+        Admixture_Simulation.write_f4dstats(sim, fp, model)
+
+        ind = ind.getvalue().split('\n')
+        assert ind[0] == 'Sample_0\tU\tNeand1'
+        assert ind[9] == 'Sample_9\tU\tEUR'
+        snp = snp.getvalue().split('\n')
+        snp0 = snp[0].split('\t')
+        assert snp0[0] == 'rs1'
+        assert snp0[1] == '1'
+        assert snp0[3] == '129'
+        assert snp0[4] == 'A'
+        assert snp0[5] == 'T'
+
+        snp9 = snp[9].split('\t')
+        assert snp9[0] == 'rs10'
+        assert snp9[1] == '1'
+        assert snp9[3] == '965'
+        assert snp9[4] == 'A'
+        assert snp9[5] == 'T'

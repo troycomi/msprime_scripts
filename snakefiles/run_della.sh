@@ -5,6 +5,9 @@ conda activate msprime_scripts
 
 set -euo pipefail
 
+# make slurm_out if not exists
+[[ -d slurm_out ]] || mkdir slurm_out
+
 ## to view dependency graph (use only a few seeds!)
 #snakemake --dag | dot -Tsvg > dag.svg
 
@@ -20,6 +23,7 @@ snakemake --cluster-config della_cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
+    --jobscript jobtemplate.sh \
     --configfile della_config.yaml
     #-R $(snakemake --list-input-changes) \
     #--rerun-incomplete

@@ -1,8 +1,10 @@
 from Option_Parser import admixture_option_parser
-from File_Printer import file_printer
+from File_Printer import file_printer, get_basename
+import Demography_Models
 import pytest
 import os
 import sys
+import io
 
 
 def test_defaults():
@@ -82,13 +84,20 @@ def test_exeception_options():
     assert 'Expected at most one output to stdout, got 3 instead.' in str(e)
 
 
+def test_basename():
+    assert get_basename('/test/one.txt') == 'one'
+    assert get_basename('/test/two.txt.txt') == 'two.txt'
+    assert get_basename('bare.txt') == 'bare'
+    assert get_basename('bare') == 'bare'
+
+
 def test_build_file_struct():
     fs = file_printer.file_struct("", "{}.txt")
     assert fs.non_default("test") == "test.txt"
     assert fs.non_default("outdir/test") == "outdir/test.txt"
     assert fs.non_default("test.txt") == "test.txt"
     assert fs.non_default("outdir/test.txt") == "outdir/test.txt"
-        
+
 
 def test_build_out_dir(tmp_path):
     # default set to wd
@@ -347,8 +356,14 @@ def test_open_writers(tmp_path):
                 if v is not None:
                     assert k == o
             assert fp.writers[o] == sys.stdout
+            assert fp.single_simulation_needed() is (o == 'haplo')
             assert fp.haplo_needed() is (o == 'haplo')
             assert fp.f4dstat_needed() is False
+
+    opts = admixture_option_parser().parse_args(['--haplo', 'test.gz',
+                                                 '--out-dir', str(tmp_path)])
+    opts = admixture_option_parser().parse_args(['--haplo', 'test.vcf',
+                                                 '--out-dir', str(tmp_path)])
 
     opts = admixture_option_parser().parse_args(['--vcf', 'test',
                                                  '--out-dir', str(tmp_path)])
@@ -368,3 +383,130 @@ def test_open_writers(tmp_path):
                     or k == 'ind'
         assert fp.haplo_needed() is False
         assert fp.f4dstat_needed() is True
+
+
+def test_print_options():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        fp.writers['options'] = output
+        fp.print_options()
+
+        assert 'pop: nonAfr' in output.getvalue()
+        assert 's_n1: 2' in output.getvalue()
+
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args(
+        '-p AFR --Neand1_sample_size 3'.split())
+    with file_printer(opts) as fp:
+        fp.writers['options'] = output
+        fp.print_options()
+
+        assert 'pop: AFR' in output.getvalue()
+        assert 's_n1: 3' in output.getvalue()
+
+
+def test_print_debug():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    model = Demography_Models.Base_demography(opts)
+    with file_printer(opts) as fp:
+        fp.writers['debug'] = output
+        fp.print_debug(model)
+
+
+def test_print_popfile():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        # when popfile writer is still none
+        fp.print_popfile(None, None)
+        model = Demography_Models.Base_demography(opts)
+        ts = next(model.simulate(1))
+        fp.writers['popfile'] = output
+        fp.print_popfile(model, ts)
+
+        output = output.getvalue().split('\n')
+        assert "samp\tpop\tsuper_pop" == output[0]
+        assert "msp_0\tNeand1\tNeand1" == output[1]
+        assert "msp_1011\tDeni\tDeni" == output[-2]
+
+
+def test_print_vcf():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        # when writer is still none
+        fp.print_vcf(None)
+        model = Demography_Models.Base_demography(opts)
+        ts = next(model.simulate(1))
+        fp.writers['vcf'] = output
+        fp.print_vcf(ts)
+
+        output = output.getvalue().split('\n')
+        assert "##source=msprime 0.6.1" == output[1]
+        assert len(output[5].split('\t')) == 1021
+
+
+def test_print_ils():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        # when writer is still none
+        fp.print_ils(None)
+        assert fp.ils_needed() is False
+
+        haplos = {2: [[100, 300], [200, 400]]}
+        fp.writers['ils'] = output
+        assert fp.ils_needed() is True
+        fp.print_ils(haplos)
+
+        output = output.getvalue().split('\n')
+        assert output[0] == '1\t100\t200\t2'
+        assert output[1] == '1\t300\t400\t2'
+
+
+def test_print_haplo():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        # when writer is still none
+        fp.print_haplo(None)
+        assert fp.haplo_needed() is False
+
+        haplos = {2: [[100, 300], [200, 400]]}
+        fp.writers['haplo'] = output
+        assert fp.haplo_needed() is True
+        fp.print_haplo(haplos)
+
+        output = output.getvalue().split('\n')
+        assert output[0] == '1\t100\t200\t2'
+        assert output[1] == '1\t300\t400\t2'
+
+
+def test_write_to():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        fp.writers['test'] = output
+        fp.write_to('test', 'testing')
+        assert output.getvalue() == 'testing'
+
+
+def test_print_f4dstat():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        fp.print_f4dstat()
+
+        fp.writers['f4dstat'] = output
+        fp.files['eigen'] = 'eigen'
+        fp.files['snp'] = 'snp'
+        fp.files['ind'] = 'ind'
+        fp.print_f4dstat()
+
+        output = output.getvalue().split('\n')
+        assert 'genotypename: eigen' == output[0]
+        assert 'snpname: snp' == output[1]
+        assert 'indivname: ind' == output[2]
+        assert 'popfilename: sim.popfile_F4stat' == output[3]

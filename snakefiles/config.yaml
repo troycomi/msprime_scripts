@@ -5,7 +5,7 @@ paths:
                      msprime/bin/src/Admixture_Simulation.py"
     # path to sstar windowed calulation directory (Ben's bin)
     sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/\
-                Sstar/s_star_git/"
+                Sstar/s_star_git"
     vcftools_bin: "/usr/local/bin/vcftools"
     bedops: "/usr/local/bin/"
 
