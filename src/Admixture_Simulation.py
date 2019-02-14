@@ -222,7 +222,7 @@ def get_human_samples(options):
         print("valid options are:", file=sys.stderr)
         for s in known_human_samples.keys():
             print("\t" + s, file=sys.stderr)
-        sys.exit(1)
+        raise ValueError(f"unknown human sample: {options.pop}")
 
     return human_samples
 
