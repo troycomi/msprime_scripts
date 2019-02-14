@@ -1,0 +1,636 @@
+# Snakefile to replace the workflow of https://github.com/abwolf/examples
+configfile: "config.yaml"
+
+import random
+import os
+from clean_config import clean_config_paths
+from get_batch_files import group_rule_input,\
+                               get_batch_files
+
+random.seed(1)
+null_seeds = random.sample(range(1, 1<<31),
+                           config['msprime']['null_simulations'])
+random.seed(2)
+admixed_seeds = random.sample(range(1, 1<<31),
+                              config['msprime']['admixed_simulations'])
+
+msprime_base_params = (config['msprime']['base_params'] 
+                + " -n {}".format(config['msprime']['n1'])
+                + " -d {}".format(config['msprime']['n2'])
+                + " -m {}".format(config['msprime']['model']) 
+                + " -l {}".format(config['msprime']['length'])
+                + " -e {}".format(config['msprime']['EUR'])
+                + " -a {}".format(config['msprime']['ASN'])
+                )
+
+model = config['msprime']['model']
+
+paths = config['paths']
+paths['base_output'] = paths['base_output'].format(model=model)
+
+dirs = {'null': os.path.split(paths['null_dir'])[1],
+        'admixed': os.path.split(paths['admixed_dir'])[1]}
+paths = clean_config_paths(paths)
+
+localrules: 
+    all,
+    config_copy,
+    generate_chr_list,
+    generate_popfile,
+    generate_options,
+    haplotype_to_sample,
+
+batch = config['msprime']['batch_size']
+group_inputs = []
+group_inputs.append(
+    group_rule_input(
+        key_name='admixed_vcf',
+        output_files=expand(paths['window_calc'],
+                            directory=dirs['admixed'],
+                            seed=admixed_seeds),
+        temp_file=paths['vcf_batch'].replace('{directory}',
+                                             dirs['admixed']),
+        group_name='vcf_to_sstar'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='null_vcf',
+        output_files=expand(paths['window_calc'],
+                            directory=dirs['null'],
+                            seed=null_seeds),
+        temp_file=paths['vcf_batch'].replace('{directory}',
+                                             dirs['null']),
+        group_name='vcf_to_sstar'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='null_match',
+        output_files=expand(paths['match_counts'],
+                            directory=dirs['null'],
+                            seed=null_seeds),
+        temp_file=paths['match_counts_batch'].replace('{directory}',
+                                             dirs['null']),
+        group_name='null_match'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='match_pvalue',
+        output_files=expand(paths['pvalue_table'],
+                            directory=dirs['admixed'],
+                            seed=admixed_seeds),
+        temp_file=paths['pvalue_table_batch'].replace('{directory}',
+                                             dirs['admixed']),
+        group_name='match_pvalue'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='merge_split',
+        output_files=expand(paths['ecdf_bed_merge_pop'],
+                            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                            population='ASN',
+                            seed=admixed_seeds),
+        temp_file=paths['merge_split_batch'],
+        group_name='merge_split'))
+
+group_inputs.append(
+    group_rule_input(
+        key_name='ecdf_bed',
+        output_files=expand(paths['ecdf_bed_files'],
+                            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                            seed=admixed_seeds),
+        temp_file=paths['ecdf_bed_batch'],
+        group_name='ecdf_bed'))
+
+group_outputs = get_batch_files(group_inputs, batch)
+
+def all_input(wildcards):
+    result = expand(paths['options'],
+                     directory=dirs.values())
+    result.append(paths['config_copy'])
+    result.append(paths['sstar_out'])
+    if config['msprime']['length'] >= 10000000:
+        result.append(paths['below_thresh'])
+
+    return result
+
+rule all:
+    input:
+        all_input
+            
+for out in group_outputs.values():
+    for i, files in enumerate(out.files):
+        rule:
+            input: files
+            output: temp(touch(out.get_temp_file(i)))
+            group: out.group_name
+
+
+rule config_copy:
+    output:
+        paths['config_copy']
+
+    run:
+        import yaml
+        with open(output[0], 'w') as conf:
+            yaml.dump(config, conf, default_flow_style=False)
+
+def get_params(wildcards):
+    if wildcards.directory == 'null':
+        return config['msprime']['null_params']
+    else:
+        return config['msprime']['admixed_params']
+
+rule generate_bed:
+    output: 
+        temp(paths['bedfile'])
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '-s {wildcards.seed} '
+            '--haplo {output} ' 
+            '{params}'
+
+rule generate_chr_list:
+    output:
+        paths['chr_list']
+
+    run:
+        if wildcards.directory == 'null':
+            seeds = null_seeds
+        else:
+            seeds = admixed_seeds
+
+        with open(output[0], 'w') as writer:
+            for s in sorted(seeds):
+                writer.write('{}\n'.format(s))
+        
+rule generate_popfile:
+    output:
+        paths['popfile']
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '--popfile {output} ' 
+
+rule generate_vcf:
+    output: 
+        temp(paths['raw_vcf'])
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    group: 'vcf_to_sstar'
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '-s {wildcards.seed} '
+            '--vcf {output} ' 
+            '{params}'
+
+rule process_vcf:
+    input: rules.generate_vcf.output
+
+    output:
+        mod=temp(paths['mod_vcf']),
+        arch=temp(paths['arch_vcf']),
+        mod_tbi=temp(paths['mod_tbi']),
+        arch_tbi=temp(paths['arch_tbi'])
+
+    group: 'vcf_to_sstar'
+
+    shell:
+        "module load samtools \n"
+        "zcat {input} | "
+            "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
+                "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
+            "bgzip -c > {output.mod} \n"
+        "tabix -fp vcf {output.mod} \n"
+        "{paths[vcftools_bin]} --gzvcf {output.mod} "
+            "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
+            "--recode --stdout 2>/dev/null | "
+            "bgzip -c > {output.arch} \n"
+        "tabix -fp vcf {output.arch}"
+
+rule sstar_window:
+    input:
+        pop=rules.generate_popfile.output,
+        mod=rules.process_vcf.output.mod,
+        mod_tbi=rules.process_vcf.output.mod_tbi,
+        arch_tbi=rules.process_vcf.output.arch_tbi,
+        arch=rules.process_vcf.output.arch
+
+    output:
+        paths['window_calc']
+
+    group: 'vcf_to_sstar'
+
+    conda: 
+        'sstar.yml'
+
+    shell:
+        "if [[ {paths[sstar_dir]} == /Genomics* ]]; then \n"
+            "BIN=/bin/windowed_calculations.py\n"
+        "else \n"
+            "BIN=/freezing-archer/bin/windowed_calculations.py\n"
+        "fi\n"
+        "python {paths[sstar_dir]}"
+            "$BIN "
+            "--vcf-has-illumina-chrnums "
+            "-vcfz {input.mod} "
+            "-indf {input.pop} "
+            "-target-pops EUR ASN "
+            "-ref-pops AFR "
+            "--archaic-vcf {input.arch} "
+            "-p 10 "
+            "-s-star "
+            "-winlen {config[s_star][window_size]} "
+            "-winstep {config[s_star][window_step_size]} "
+            "-no-pvalues "
+            "-range 0 {config[msprime][length]} "
+            "2>/dev/null "
+            "| gzip -c - > {output}\n"
+
+
+rule generate_options:
+    output:
+        paths['options']
+
+    params:
+        get_params
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python {paths[msprime_script]} '
+            '{msprime_base_params} '
+            '--options {output} '
+            '{params}'
+
+rule haplotype_to_sample:
+    output:
+        paths['haplotype_map']
+
+    input:
+        rules.generate_popfile.output
+
+    run:
+        with open(input[0], 'r') as reader, \
+            open(output[0], 'w') as writer:
+            counter = 0
+            reader.readline()
+            for line in reader:
+                pop = line.split('\t')[0]
+                writer.write(f"{counter}\t{pop}:0\n")
+                counter += 1
+                writer.write(f"{counter}\t{pop}:1\n")
+                counter += 1
+
+rule match_pct:
+    input:
+        vcf=rules.process_vcf.output.mod,
+        vcf_tbi=rules.process_vcf.output.mod_tbi,
+        pop=rules.generate_popfile.output
+
+    output:
+        temp(paths['match_counts'])
+
+    params:
+        archaic=" ".join(config['match_pct']['archaic']),
+        modern=" ".join(config['match_pct']['modern'])
+
+    conda:
+        "match_pvalue.yml"
+
+    group: "null_match"
+
+    shell:
+        'archaic_match max-match-pct '
+            '--vcf {input.vcf} '
+            '--populations {input.pop} '
+            '--archaic-populations {params.archaic} '
+            '--modern-populations {params.modern} '
+            '--chrom-sizes {config[msprime][length]} '
+            '--informative-site-method {config[match_pct][informative_site_method]} '
+            '> {output} 2>/dev/null'
+
+rule build_db:
+    input:
+        expand(paths['match_counts'],
+               directory=dirs['null'],
+               seed=null_seeds),
+        group_outputs['null_match'].get_temp_files()
+
+    output:
+        paths['null_db']
+
+    params:
+        input_glob=lambda wildcards: paths['match_counts']\
+                    .replace("{directory}", dirs['null'])\
+                    .replace("{seed,\d+}", "*")
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'archaic_match build-db '
+        '--match-pct-count {params.input_glob} '
+        '--db {output}'
+
+rule combine_introgressed_regions:
+    input:
+        regions=expand(paths['bedfile'],
+                       seed=admixed_seeds,
+                       directory=dirs['admixed']),
+        sample_map=rules.haplotype_to_sample.output
+
+    output:
+        paths['combined_bed']
+
+    params:
+        input_glob=lambda wildcards: paths['bedfile'].format(seed="*",
+                                                             directory=dirs['admixed'])
+
+    conda:
+        "match_pvalue.yml"
+
+    shell:
+        'column_replace '
+            '{params.input_glob} '
+            '-d {input.sample_map} '
+            '-c 4 '
+            '| sort -k 1,1 -k 2,2n '
+            '| bgzip > {output}'
+
+rule match_pct_pvalue:
+    input:
+        vcf=rules.process_vcf.output.mod,
+        vcf_tbi=rules.process_vcf.output.mod_tbi,
+        pop=rules.generate_popfile.output,
+        match_db=rules.build_db.output,
+        #overlap=paths['combined_bed']
+
+    output:
+        paths['pvalue_table']
+
+    params:
+        archaic=" ".join(config['match_pct']['archaic']),
+        modern=" ".join(config['match_pct']['modern'])
+
+    conda:
+        "match_pvalue.yml"
+
+    group: "match_pvalue"
+
+    shell:
+        'archaic_match max-match-pct '
+            '--vcf {input.vcf} '
+            '--archaic-populations {params.archaic} '
+            '--modern-populations {params.modern} '
+            '--chrom-sizes {config[msprime][length]} '
+            '--populations {input.pop} '
+            '--window-size {config[s_star][window_size]} '
+            '--step-size {config[s_star][window_step_size]} '
+            '--match-pct-database {input.match_db} '
+            '--informative-site-method {config[match_pct][informative_site_method]} '
+            '--informative-site-range {config[match_pct][informative_site_range]} '
+           #'--overlap-regions {input.overlap} '
+            '| bgzip > {output}'
+
+rule generate_ecdf:
+    input:
+        paths['chr_list'].format(model=model,
+                                 directory=dirs['null']),
+        expand(paths['window_calc'],
+               seed=null_seeds,
+               directory=dirs['null']),
+        group_outputs['null_vcf'].get_temp_files()
+
+    output:
+        paths['ecdf_data'].format(chrom=len(null_seeds))
+
+    params:
+        chrom=len(null_seeds),
+
+    conda:
+        "sstar_ecdf.yml"
+
+    shell:
+        'Rscript SstarECDFpvalueCalculation.R '
+            '--inputdir {paths[base_output]} '
+            '--null_dir /{dirs[null]} '
+            '--max_chrm_null {params.chrom} '
+            '--ecdf_only > /dev/null'
+
+rule ecdf_bed:
+    input:
+        paths['chr_list'].format(model=model,
+                                 directory=dirs['admixed']),
+        paths['window_calc'].replace('{directory}', dirs['admixed']),
+        paths['pvalue_table'].replace('{directory}', dirs['admixed']),
+        ecdf=paths['ecdf_data'].format(chrom=len(null_seeds)),
+        temp_files=group_outputs['admixed_vcf'].get_temp_files(),
+        temp_files2=group_outputs['match_pvalue'].get_temp_files(),
+
+    output:
+        paths['ecdf_bed_files']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+
+    params:
+        chrom=len(admixed_seeds)
+
+    conda:
+        "sstar_ecdf.yml"
+
+    group: 'ecdf_bed'
+
+    shell:
+        'Rscript SstarECDFpvalueCalculation.R '
+            '--inputdir {paths[base_output]} '
+            '--outputdir {paths[ecdf_bed_dir]} '
+            '--admix_dir /{dirs[admixed]} '
+            '--max_chrm_admix {params.chrom} '
+            '--ecdf {input.ecdf} '
+            '--sstarpval {config[s_star_ecdf][sstarpvalue]} ' 
+            '--matchpval {config[s_star_ecdf][matchpvalue]} ' 
+            '--chromosome {wildcards.seed} '
+            '{config[s_star_ecdf][filter]} &> /dev/null' 
+
+rule merge_bed:
+    input:
+        paths['ecdf_bed_files']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+        group_outputs['ecdf_bed'].get_temp_files()
+
+    output:
+        paths['ecdf_bed_merge']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+
+    group: "merge_split"
+
+    shell:
+        'tail -n +2 {input[0]} | '  # strip header
+        '{paths[bedops]}/sort-bed - | '
+        '{paths[bedops]}/bedops --merge - | '
+        'gzip -c - '
+        '> {output}'
+
+rule split_pops:
+    input:
+        bed=paths['ecdf_bed_merge']\
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+        pop=rules.generate_popfile.output[0]
+
+    output:
+        temp(paths['ecdf_bed_merge_pop']\
+           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+           .replace('{population}', 'ASN')),
+        temp(paths['ecdf_bed_merge_pop']\
+           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+           .replace('{population}', 'EUR')),
+
+    group: "merge_split"
+
+    run:
+        import gzip
+
+        eur = None
+        asn = None
+        with open(input.pop) as popfile:
+            popfile.readline()  # strip header
+            for line in popfile:
+                toks = line.split('\t')
+                if toks[1] == "EUR":
+                    if eur is None:
+                        eur = [toks[0]]*2
+                    else:
+                        eur[1] = toks[0]
+
+                elif toks[1] == "ASN" or toks[1] == "EAS":
+                    if asn is None:
+                        asn = [toks[0]]*2
+                    else:
+                        asn[1] = toks[0]
+
+        asn = [int(a[4:]) for a in asn]
+        eur = [int(a[4:]) for a in eur]
+        with gzip.open(output[0], 'wt') as asn_bed, \
+            gzip.open(output[1], 'wt') as eur_bed, \
+            gzip.open(input.bed, 'rt') as merge_bed:
+            for line in merge_bed:
+                # of form msp_XX:[1,2]_POSITION, strip XX
+                pop = int(line.split(':')[0][4:])
+                if pop > asn[0] and pop < asn[1]:
+                    asn_bed.write(line)
+                elif pop > eur[0] and pop < eur[1]:
+                    eur_bed.write(line)
+
+rule calc_admix:
+    input:
+        asn=expand(paths['ecdf_bed_merge_pop']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+                   .replace('{population}', 'ASN'),
+                   seed=admixed_seeds),
+        eur=expand(paths['ecdf_bed_merge_pop']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+                   .replace('{population}', 'EUR'),
+                   seed=admixed_seeds),
+        temp_files=group_outputs['merge_split'].get_temp_files()
+
+    output:
+        paths['sstar_out']
+
+    shell:
+        'zcat {input.asn} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
+            '{{print "ASN: " sum_bp/{config[msprime][ASN]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
+        '> {output} \n'
+        'zcat {input.eur} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
+            '{{print "EUR: " sum_bp/{config[msprime][EUR]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
+        '>> {output}'
+
+rule calc_deserts:
+    input:
+        expand(paths['ecdf_bed_merge']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+                   seed=admixed_seeds),
+        group_outputs['merge_split'].get_temp_files()
+
+    output:
+        pipe(paths['desert_windows'])
+
+    group: 'desert'
+
+    shell:
+        'zcat {input} | '
+        'python split_chromosomes.py {config[msprime][length]} '
+        '> {output}'
+
+rule add_n1_n2:
+    input:
+        paths['desert_windows']
+
+    output:
+        pipe(paths['desert_windows_unzip'])
+
+    group: 'desert'
+
+    shell:
+        'cat {input} | '
+        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' '
+        '> {output} '
+
+rule significant_windows:
+    input:
+        windows=rules.calc_deserts.output,
+        chroms=paths['chr_list']\
+            .replace('{directory}', dirs['admixed'])\
+            .replace('{model}', model),
+        pop=rules.generate_popfile.output
+
+    output:
+        paths['below_thresh']
+
+    conda:
+        'sstar_ecdf.yml'
+
+    group: 'desert'
+
+    shell:
+        'INDIV=$(($(wc -l < {input.pop}) * 2))\n'
+        'Rscript toPct_Int.1_to_15Mb.R '
+            '{input.windows} '
+            '$INDIV '
+            '{config[msprime][model]} '
+            '{config[window_thresh]} '
+            '{input.chroms} '
+            '> {output}'
+
+
