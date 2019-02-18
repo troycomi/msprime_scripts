@@ -566,22 +566,22 @@ rule calc_admix:
         paths['sstar_out']
 
     shell:
-        'zcat {input.asn} | '
+        'echo {input.asn} | xargs zcat | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "ASN: " sum_bp/{config[msprime][ASN]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '> {output} \n'
-        'zcat {input.eur} | '
+        'echo {input.eur} | xargs zcat | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "EUR: " sum_bp/{config[msprime][EUR]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '>> {output}'
 
 rule calc_deserts:
     input:
-        expand(paths['ecdf_bed_merge']\
+        beds=expand(paths['ecdf_bed_merge']\
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
                    seed=admixed_seeds),
-        group_outputs['merge_split'].get_temp_files()
+        tmp=group_outputs['merge_split'].get_temp_files()
 
     output:
         pipe(paths['desert_windows'])
@@ -589,7 +589,7 @@ rule calc_deserts:
     group: 'desert'
 
     shell:
-        'zcat {input} | '
+        'echo {input.beds} | xargs zcat | '
         'python split_chromosomes.py {config[msprime][length]} '
         '> {output}'
 
