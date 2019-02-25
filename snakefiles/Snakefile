@@ -187,7 +187,8 @@ rule generate_popfile:
 
 rule generate_vcf:
     output:
-        temp(paths['raw_vcf'])
+        #temp(paths['raw_vcf'])
+        paths['raw_vcf']
 
     params:
         get_params
@@ -208,10 +209,14 @@ rule process_vcf:
     input: rules.generate_vcf.output
 
     output:
-        mod=temp(paths['mod_vcf']),
-        arch=temp(paths['arch_vcf']),
-        mod_tbi=temp(paths['mod_tbi']),
-        arch_tbi=temp(paths['arch_tbi'])
+#        mod=temp(paths['mod_vcf']),
+#        arch=temp(paths['arch_vcf']),
+#        mod_tbi=temp(paths['mod_tbi']),
+#        arch_tbi=temp(paths['arch_tbi'])
+        mod=paths['mod_vcf'],
+        arch=paths['arch_vcf'],
+        mod_tbi=paths['mod_tbi'],
+        arch_tbi=paths['arch_tbi']
 
     group: 'vcf_to_sstar'
 
@@ -565,12 +570,24 @@ rule calc_admix:
     output:
         paths['sstar_out']
 
+    params:
+        asn=paths['ecdf_bed_merge_pop'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   population='ASN',
+                   seed='*'),
+        eur=paths['ecdf_bed_merge_pop'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   population='EUR',
+                   seed='*'),
+
     shell:
-        'echo {input.asn} | xargs zcat | '
+        'zcat {params.asn} | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "ASN: " sum_bp/{config[msprime][ASN]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '> {output} \n'
-        'echo {input.eur} | xargs zcat | '
+        'zcat {params.eur} | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "EUR: " sum_bp/{config[msprime][EUR]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
         '>> {output}'
@@ -586,10 +603,16 @@ rule calc_deserts:
     output:
         pipe(paths['desert_windows'])
 
+    params:
+        beds=paths['ecdf_bed_merge'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   seed='*'),
+
     group: 'desert'
 
     shell:
-        'echo {input.beds} | xargs zcat | '
+        'zcat {params.beds} | '
         'python split_chromosomes.py {config[msprime][length]} '
         '> {output}'
 

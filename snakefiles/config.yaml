@@ -68,13 +68,13 @@ msprime:
 
     batch_size: 100
 
-    null_simulations: 5000
+    null_simulations: 500
     null_params: " -n 0.0 -d 0.0 \
                    -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                    -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                    -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 1000
+    admixed_simulations: 100
     admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                       -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                       -G AF_B_0 -G B_AF_0"
