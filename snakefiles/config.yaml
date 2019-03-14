@@ -61,7 +61,7 @@ msprime:
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
     model: "Sriram"
-    length: 10000000
+    length: 5000000
     n1: 0.1
     n2: 0.0
     EUR: 1006

@@ -648,7 +648,9 @@ rule significant_windows:
     group: 'desert'
 
     shell:
-        'INDIV=$(($(wc -l < {input.pop}) * 2))\n'
+        # This uses the total popfile, which includes Neand and AFR individuals...shouldn't be used to measure prop_blw_thrhld
+        #'INDIV=$(($(wc -l < {input.pop}) * 2))\n'
+        'INDIV=$( awk \'BEGIN {{print {config[msprime][EUR]}+{config[msprime][ASN]}}}\' )'
         'Rscript toPct_Int.1_to_15Mb.R '
             '{input.windows} '
             '$INDIV '
