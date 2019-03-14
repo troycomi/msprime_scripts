@@ -24,6 +24,7 @@ paths:
     match_counts: "__BASE_OUTPUT__/{directory}/match_pct/\
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
+#    null_db: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/Sriram/null/v_02192019/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     ecdf_data: "__NULL_DIR__/SstarECDF_maxchrm_{chrom}.RData.gz"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
@@ -52,7 +53,7 @@ paths:
     admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
-    # null is always stored in base/null
+    # null is always stored in base/null:
     null_dir: "__BASE_OUTPUT__/null"
 
 msprime:
@@ -60,7 +61,7 @@ msprime:
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
     model: "Sriram"
-    length: 1000000
+    length: 10000000
     n1: 0.1
     n2: 0.0
     EUR: 1006

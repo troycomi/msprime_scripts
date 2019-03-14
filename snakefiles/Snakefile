@@ -110,7 +110,7 @@ def all_input(wildcards):
                      directory=dirs.values())
     result.append(paths['config_copy'])
     result.append(paths['sstar_out'])
-    if config['msprime']['length'] >= 10000000:
+    if config['msprime']['length'] >= 5000000:
         result.append(paths['below_thresh'])
 
     return result
@@ -349,14 +349,14 @@ rule build_db:
     params:
         input_glob=lambda wildcards: paths['match_counts']\
                     .replace("{directory}", dirs['null'])\
-                    .replace("{seed,\d+}", "*")
+                    .replace("{seed}", "*")
 
     conda:
         "match_pvalue.yml"
 
     shell:
         'archaic_match build-db '
-        '--match-pct-count {params.input_glob} '
+        '--match-pct-count {params.input_glob:q} '
         '--db {output}'
 
 rule combine_introgressed_regions:
@@ -390,6 +390,7 @@ rule match_pct_pvalue:
         vcf_tbi=rules.process_vcf.output.mod_tbi,
         pop=rules.generate_popfile.output,
         match_db=rules.build_db.output,
+#        match_db=paths['null_db'],
         #overlap=paths['combined_bed']
 
     output:
