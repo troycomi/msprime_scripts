@@ -123,8 +123,9 @@ for out in group_outputs.values():
     for i, files in enumerate(out.files):
         rule:
             input: files
-            output: temp(touch(out.get_temp_file(i)))
+            output: temp(out.get_temp_file(i))
             group: out.group_name
+            shell: 'touch {output}'
 
 
 rule config_copy:
@@ -187,8 +188,8 @@ rule generate_popfile:
 
 rule generate_vcf:
     output:
-        #temp(paths['raw_vcf'])
-        paths['raw_vcf']
+        temp(paths['raw_vcf'])
+#        paths['raw_vcf']
 
     params:
         get_params
@@ -209,14 +210,14 @@ rule process_vcf:
     input: rules.generate_vcf.output
 
     output:
-#        mod=temp(paths['mod_vcf']),
-#        arch=temp(paths['arch_vcf']),
-#        mod_tbi=temp(paths['mod_tbi']),
-#        arch_tbi=temp(paths['arch_tbi'])
-        mod=paths['mod_vcf'],
-        arch=paths['arch_vcf'],
-        mod_tbi=paths['mod_tbi'],
-        arch_tbi=paths['arch_tbi']
+        mod=temp(paths['mod_vcf']),
+        arch=temp(paths['arch_vcf']),
+        mod_tbi=temp(paths['mod_tbi']),
+        arch_tbi=temp(paths['arch_tbi'])
+#        mod=paths['mod_vcf'],
+#        arch=paths['arch_vcf'],
+#        mod_tbi=paths['mod_tbi'],
+#        arch_tbi=paths['arch_tbi']
 
     group: 'vcf_to_sstar'
 
@@ -389,7 +390,7 @@ rule match_pct_pvalue:
         vcf=rules.process_vcf.output.mod,
         vcf_tbi=rules.process_vcf.output.mod_tbi,
         pop=rules.generate_popfile.output,
-        match_db=rules.build_db.output,
+        match_db=ancient(rules.build_db.output),
 #        match_db=paths['null_db'],
         #overlap=paths['combined_bed']
 
@@ -602,34 +603,18 @@ rule calc_deserts:
         tmp=group_outputs['merge_split'].get_temp_files()
 
     output:
-        pipe(paths['desert_windows'])
-
-    params:
-        beds=paths['ecdf_bed_merge'].format(
-                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
-                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
-                   seed='*'),
+        temp(paths['desert_windows'])
 
     group: 'desert'
+
+    conda:
+        "../msprime.yml"
 
     shell:
         'echo {input.beds} | xargs zcat | '
-        'python split_chromosomes.py {config[msprime][length]} '
-        '> {output}'
-
-rule add_n1_n2:
-    input:
-        paths['desert_windows']
-
-    output:
-        pipe(paths['desert_windows_unzip'])
-
-    group: 'desert'
-
-    shell:
-        'cat {input} | '
+        'python split_chromosomes.py {config[msprime][length]} | '
         'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' '
-        '> {output} '
+        '> {output}'
 
 rule significant_windows:
     input:
@@ -648,7 +633,7 @@ rule significant_windows:
     group: 'desert'
 
     shell:
-        'INDIV=$(($(wc -l < {input.pop}) * 2))\n'
+        'INDIV=$(({config[msprime][EUR]} + {config[msprime][ASN]}))\n'
         'Rscript toPct_Int.1_to_15Mb.R '
             '{input.windows} '
             '$INDIV '
