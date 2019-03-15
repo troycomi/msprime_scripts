@@ -63,5 +63,33 @@ view seff information from the slurmout files.  From the snakemake directory
 Depending on the size of the output, pipe through less or write to an output
 file.
 
+### Snakemake
+A snakemake workflow is available for performing numerous simulations and 
+analyzing the results with [S star](https://github.com/bvernot/freezing-archer)
+and [match p value](https://github.com/lparsons/archaic_match).
+Two configurations are provided for the Princeton clusters
+della and gencomp1.  Execution is controlled through config files in the 
+snakefiles directory.  The run scripts will begin a workflow execution.  The
+loop\_run script gives an example of how to run several instances with different
+parameters in a sequential mode.
+
+#### Bugs in other code
+Dependencies of the snakemake workflow contain bugs which should be corrected
+for best performance.  
+
+The archaic match \_\_main\_\_.py has a bug where Nonetype callsets are not
+handled properly.  After the conda environments are created, find the offending
+file and change line 390 to:
+```
+if callset is None or 'calldata/GT' not in callset:
+```
+
+Snakemake, as of version 5.4.0, has errors when attempting to restart group
+jobs which are partially completed.  A key error is generated in the dag.py
+file which can be corrected by changing line 818 to:
+```
+stop = lambda j: j.group != job.group or j not in self.needrun_jobs
+```
+
 ## License
 TBD
