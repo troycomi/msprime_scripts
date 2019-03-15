@@ -1,0 +1,52 @@
+---
+__default__:
+    "n": 1
+    "memory": '5G'
+    "time": '0-10:00'
+    "jobname": 'snake'
+    "qos": '1day'
+
+vcf_to_sstar:
+    "n": 1
+    "time": '1-0'
+    "jobname": 'vcf-to-sstar'
+    "qos": '1wk'
+
+generate_bed:
+    "jobname": 'generate-bed'
+
+combine_introgressed_regions:
+    "jobname": 'combine-introgressed-regions'
+
+null_match:
+    "jobname": 'null-match'
+
+build_db:
+    "jobname": 'build-db'
+
+generate_ecdf:
+    "memory": '50G'
+    "jobname": 'generate-ecdf'
+    "time": '1-0'
+    "qos": '1wk'
+
+match_pvalue:
+    "jobname": 'match-pvalue'
+
+ecdf_bed:
+    "n": 5
+    "memory": '10G'
+    "jobname": 'ecdf-bed'
+
+desert:
+    "jobname": 'desert'
+    "n": 3
+    "memory": '50G'
+    "time": '2-0'
+    "qos": '1wk'
+
+merge_split:
+    "jobname": 'merge-split'
+
+calc_admix:
+    "jobname": 'calc-admix'

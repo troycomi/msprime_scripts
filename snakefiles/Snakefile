@@ -14,10 +14,10 @@ random.seed(2)
 admixed_seeds = random.sample(range(1, 1<<31),
                               config['msprime']['admixed_simulations'])
 
-msprime_base_params = (config['msprime']['base_params'] 
+msprime_base_params = (config['msprime']['base_params']
                 + " -n {}".format(config['msprime']['n1'])
                 + " -d {}".format(config['msprime']['n2'])
-                + " -m {}".format(config['msprime']['model']) 
+                + " -m {}".format(config['msprime']['model'])
                 + " -l {}".format(config['msprime']['length'])
                 + " -e {}".format(config['msprime']['EUR'])
                 + " -a {}".format(config['msprime']['ASN'])
@@ -32,7 +32,7 @@ dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
 paths = clean_config_paths(paths)
 
-localrules: 
+localrules:
     all,
     config_copy,
     generate_chr_list,
@@ -110,7 +110,7 @@ def all_input(wildcards):
                      directory=dirs.values())
     result.append(paths['config_copy'])
     result.append(paths['sstar_out'])
-    if config['msprime']['length'] >= 10000000:
+    if config['msprime']['length'] >= 5000000:
         result.append(paths['below_thresh'])
 
     return result
@@ -118,7 +118,7 @@ def all_input(wildcards):
 rule all:
     input:
         all_input
-            
+
 for out in group_outputs.values():
     for i, files in enumerate(out.files):
         rule:
@@ -143,7 +143,7 @@ def get_params(wildcards):
         return config['msprime']['admixed_params']
 
 rule generate_bed:
-    output: 
+    output:
         temp(paths['bedfile'])
 
     params:
@@ -156,7 +156,7 @@ rule generate_bed:
         'python {paths[msprime_script]} '
             '{msprime_base_params} '
             '-s {wildcards.seed} '
-            '--haplo {output} ' 
+            '--haplo {output} '
             '{params}'
 
 rule generate_chr_list:
@@ -172,7 +172,7 @@ rule generate_chr_list:
         with open(output[0], 'w') as writer:
             for s in sorted(seeds):
                 writer.write('{}\n'.format(s))
-        
+
 rule generate_popfile:
     output:
         paths['popfile']
@@ -183,11 +183,12 @@ rule generate_popfile:
     shell:
         'python {paths[msprime_script]} '
             '{msprime_base_params} '
-            '--popfile {output} ' 
+            '--popfile {output} '
 
 rule generate_vcf:
-    output: 
-        temp(paths['raw_vcf'])
+    output:
+        #temp(paths['raw_vcf'])
+        paths['raw_vcf']
 
     params:
         get_params
@@ -201,17 +202,21 @@ rule generate_vcf:
         'python {paths[msprime_script]} '
             '{msprime_base_params} '
             '-s {wildcards.seed} '
-            '--vcf {output} ' 
+            '--vcf {output} '
             '{params}'
 
 rule process_vcf:
     input: rules.generate_vcf.output
 
     output:
-        mod=temp(paths['mod_vcf']),
-        arch=temp(paths['arch_vcf']),
-        mod_tbi=temp(paths['mod_tbi']),
-        arch_tbi=temp(paths['arch_tbi'])
+#        mod=temp(paths['mod_vcf']),
+#        arch=temp(paths['arch_vcf']),
+#        mod_tbi=temp(paths['mod_tbi']),
+#        arch_tbi=temp(paths['arch_tbi'])
+        mod=paths['mod_vcf'],
+        arch=paths['arch_vcf'],
+        mod_tbi=paths['mod_tbi'],
+        arch_tbi=paths['arch_tbi']
 
     group: 'vcf_to_sstar'
 
@@ -241,7 +246,7 @@ rule sstar_window:
 
     group: 'vcf_to_sstar'
 
-    conda: 
+    conda:
         'sstar.yml'
 
     shell:
@@ -329,7 +334,7 @@ rule match_pct:
             '--modern-populations {params.modern} '
             '--chrom-sizes {config[msprime][length]} '
             '--informative-site-method {config[match_pct][informative_site_method]} '
-            '> {output} 2>/dev/null'
+            '> {output}'
 
 rule build_db:
     input:
@@ -344,14 +349,14 @@ rule build_db:
     params:
         input_glob=lambda wildcards: paths['match_counts']\
                     .replace("{directory}", dirs['null'])\
-                    .replace("{seed,\d+}", "*")
+                    .replace("{seed}", "*")
 
     conda:
         "match_pvalue.yml"
 
     shell:
         'archaic_match build-db '
-        '--match-pct-count {params.input_glob} '
+        '--match-pct-count {params.input_glob:q} '
         '--db {output}'
 
 rule combine_introgressed_regions:
@@ -385,6 +390,7 @@ rule match_pct_pvalue:
         vcf_tbi=rules.process_vcf.output.mod_tbi,
         pop=rules.generate_popfile.output,
         match_db=rules.build_db.output,
+#        match_db=paths['null_db'],
         #overlap=paths['combined_bed']
 
     output:
@@ -469,10 +475,10 @@ rule ecdf_bed:
             '--admix_dir /{dirs[admixed]} '
             '--max_chrm_admix {params.chrom} '
             '--ecdf {input.ecdf} '
-            '--sstarpval {config[s_star_ecdf][sstarpvalue]} ' 
-            '--matchpval {config[s_star_ecdf][matchpvalue]} ' 
+            '--sstarpval {config[s_star_ecdf][sstarpvalue]} '
+            '--matchpval {config[s_star_ecdf][matchpvalue]} '
             '--chromosome {wildcards.seed} '
-            '{config[s_star_ecdf][filter]} &> /dev/null' 
+            '{config[s_star_ecdf][filter]} &> /dev/null'
 
 rule merge_bed:
     input:
@@ -565,6 +571,18 @@ rule calc_admix:
     output:
         paths['sstar_out']
 
+    params:
+        asn=paths['ecdf_bed_merge_pop'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   population='ASN',
+                   seed='*'),
+        eur=paths['ecdf_bed_merge_pop'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   population='EUR',
+                   seed='*'),
+
     shell:
         'echo {input.asn} | xargs zcat | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
@@ -585,6 +603,12 @@ rule calc_deserts:
 
     output:
         pipe(paths['desert_windows'])
+
+    params:
+        beds=paths['ecdf_bed_merge'].format(
+                   sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                   matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                   seed='*'),
 
     group: 'desert'
 
@@ -632,5 +656,3 @@ rule significant_windows:
             '{config[window_thresh]} '
             '{input.chroms} '
             '> {output}'
-
-

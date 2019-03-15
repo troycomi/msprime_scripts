@@ -12,10 +12,10 @@ set -euo pipefail
 #snakemake --dag --config null_simulations=1 admixed_simulations=1 | dot -Tsvg > dag.svg
 
 ##unlock if job was interrupted
-#snakemake --unlock
+snakemake --unlock
 
-##perform workflow.  
-snakemake --cluster-config della_cluster.yaml \
+##perform workflow.
+snakemake --cluster-config cluster.yaml \
     --cluster "sbatch --cpus-per-task={cluster.n} \
         --mem={cluster.memory} --time={cluster.time} \
         --output=slurm_out/{cluster.jobname}_%A --job-name={cluster.jobname} \
@@ -23,4 +23,5 @@ snakemake --cluster-config della_cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
+    --configfile config.yaml
     #--rerun-incomplete
