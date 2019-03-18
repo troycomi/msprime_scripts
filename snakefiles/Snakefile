@@ -106,12 +106,12 @@ group_inputs.append(
 group_outputs = get_batch_files(group_inputs, batch)
 
 def all_input(wildcards):
-    result = expand(paths['options'],
-                     directory=dirs.values())
-    result.append(paths['config_copy'])
-    result.append(paths['sstar_out'])
+    result = ancient(expand(paths['options'],
+                     directory=dirs.values()))
+    result.append(ancient(paths['config_copy']))
+    result.append(ancient(paths['sstar_out']))
     if config['msprime']['length'] >= 5000000:
-        result.append(paths['below_thresh'])
+        result.append(ancient(paths['below_thresh']))
 
     return result
 
@@ -122,7 +122,7 @@ rule all:
 for out in group_outputs.values():
     for i, files in enumerate(out.files):
         rule:
-            input: files
+            input: ancient(files)
             output: temp(out.get_temp_file(i))
             group: out.group_name
             shell: 'touch {output}'
@@ -207,7 +207,7 @@ rule generate_vcf:
             '{params}'
 
 rule process_vcf:
-    input: rules.generate_vcf.output
+    input: ancient(rules.generate_vcf.output)
 
     output:
         mod=temp(paths['mod_vcf']),
@@ -236,11 +236,11 @@ rule process_vcf:
 
 rule sstar_window:
     input:
-        pop=rules.generate_popfile.output,
-        mod=rules.process_vcf.output.mod,
-        mod_tbi=rules.process_vcf.output.mod_tbi,
-        arch_tbi=rules.process_vcf.output.arch_tbi,
-        arch=rules.process_vcf.output.arch
+        pop=ancient(rules.generate_popfile.output),
+        mod=ancient(rules.process_vcf.output.mod),
+        mod_tbi=ancient(rules.process_vcf.output.mod_tbi),
+        arch_tbi=ancient(rules.process_vcf.output.arch_tbi),
+        arch=ancient(rules.process_vcf.output.arch)
 
     output:
         paths['window_calc']
@@ -311,9 +311,9 @@ rule haplotype_to_sample:
 
 rule match_pct:
     input:
-        vcf=rules.process_vcf.output.mod,
-        vcf_tbi=rules.process_vcf.output.mod_tbi,
-        pop=rules.generate_popfile.output
+        vcf=ancient(rules.process_vcf.output.mod),
+        vcf_tbi=ancient(rules.process_vcf.output.mod_tbi),
+        pop=ancient(rules.generate_popfile.output)
 
     output:
         temp(paths['match_counts'])
@@ -339,10 +339,10 @@ rule match_pct:
 
 rule build_db:
     input:
-        expand(paths['match_counts'],
-               directory=dirs['null'],
-               seed=null_seeds),
-        group_outputs['null_match'].get_temp_files()
+        ancient(expand(paths['match_counts'],
+                directory=dirs['null'],
+                seed=null_seeds)),
+        ancient(group_outputs['null_match'].get_temp_files())
 
     output:
         paths['null_db']
@@ -362,10 +362,10 @@ rule build_db:
 
 rule combine_introgressed_regions:
     input:
-        regions=expand(paths['bedfile'],
-                       seed=admixed_seeds,
-                       directory=dirs['admixed']),
-        sample_map=rules.haplotype_to_sample.output
+        regions=ancient(expand(paths['bedfile'],
+                        seed=admixed_seeds,
+                        directory=dirs['admixed'])),
+        sample_map=ancient(rules.haplotype_to_sample.output)
 
     output:
         paths['combined_bed']
@@ -387,9 +387,9 @@ rule combine_introgressed_regions:
 
 rule match_pct_pvalue:
     input:
-        vcf=rules.process_vcf.output.mod,
-        vcf_tbi=rules.process_vcf.output.mod_tbi,
-        pop=rules.generate_popfile.output,
+        vcf=ancient(rules.process_vcf.output.mod),
+        vcf_tbi=ancient(rules.process_vcf.output.mod_tbi),
+        pop=ancient(rules.generate_popfile.output),
         match_db=ancient(rules.build_db.output),
 #        match_db=paths['null_db'],
         #overlap=paths['combined_bed']
@@ -423,12 +423,12 @@ rule match_pct_pvalue:
 
 rule generate_ecdf:
     input:
-        paths['chr_list'].format(model=model,
-                                 directory=dirs['null']),
-        expand(paths['window_calc'],
+        ancient(paths['chr_list'].format(model=model,
+                                 directory=dirs['null'])),
+        ancient(expand(paths['window_calc'],
                seed=null_seeds,
-               directory=dirs['null']),
-        group_outputs['null_vcf'].get_temp_files()
+               directory=dirs['null'])),
+        ancient(group_outputs['null_vcf'].get_temp_files())
 
     output:
         paths['ecdf_data'].format(chrom=len(null_seeds))
@@ -448,13 +448,13 @@ rule generate_ecdf:
 
 rule ecdf_bed:
     input:
-        paths['chr_list'].format(model=model,
-                                 directory=dirs['admixed']),
-        paths['window_calc'].replace('{directory}', dirs['admixed']),
-        paths['pvalue_table'].replace('{directory}', dirs['admixed']),
-        ecdf=paths['ecdf_data'].format(chrom=len(null_seeds)),
-        temp_files=group_outputs['admixed_vcf'].get_temp_files(),
-        temp_files2=group_outputs['match_pvalue'].get_temp_files(),
+        ancient(paths['chr_list'].format(model=model,
+                                 directory=dirs['admixed'])),
+        ancient(paths['window_calc'].replace('{directory}', dirs['admixed'])),
+        ancient(paths['pvalue_table'].replace('{directory}', dirs['admixed'])),
+        ecdf=ancient(paths['ecdf_data'].format(chrom=len(null_seeds))),
+        temp_files=ancient(group_outputs['admixed_vcf'].get_temp_files()),
+        temp_files2=ancient(group_outputs['match_pvalue'].get_temp_files()),
 
     output:
         paths['ecdf_bed_files']\
@@ -483,10 +483,10 @@ rule ecdf_bed:
 
 rule merge_bed:
     input:
-        paths['ecdf_bed_files']\
+        ancient(paths['ecdf_bed_files']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-        group_outputs['ecdf_bed'].get_temp_files()
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])),
+        ancient(group_outputs['ecdf_bed'].get_temp_files())
 
     output:
         paths['ecdf_bed_merge']\
@@ -504,10 +504,10 @@ rule merge_bed:
 
 rule split_pops:
     input:
-        bed=paths['ecdf_bed_merge']\
+        bed=ancient(paths['ecdf_bed_merge']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-        pop=rules.generate_popfile.output[0]
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])),
+        pop=ancient(rules.generate_popfile.output[0])
 
     output:
         temp(paths['ecdf_bed_merge_pop']\
@@ -557,17 +557,17 @@ rule split_pops:
 
 rule calc_admix:
     input:
-        asn=expand(paths['ecdf_bed_merge_pop']\
+        asn=ancient(expand(paths['ecdf_bed_merge_pop']\
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
                    .replace('{population}', 'ASN'),
-                   seed=admixed_seeds),
-        eur=expand(paths['ecdf_bed_merge_pop']\
+                   seed=admixed_seeds)),
+        eur=ancient(expand(paths['ecdf_bed_merge_pop']\
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
                    .replace('{population}', 'EUR'),
-                   seed=admixed_seeds),
-        temp_files=group_outputs['merge_split'].get_temp_files()
+                   seed=admixed_seeds)),
+        temp_files=ancient(group_outputs['merge_split'].get_temp_files())
 
     output:
         paths['sstar_out']
@@ -596,11 +596,11 @@ rule calc_admix:
 
 rule calc_deserts:
     input:
-        beds=expand(paths['ecdf_bed_merge']\
+        beds=ancient(expand(paths['ecdf_bed_merge']\
                    .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
                    .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
-                   seed=admixed_seeds),
-        tmp=group_outputs['merge_split'].get_temp_files()
+                   seed=admixed_seeds)),
+        tmp=ancient(group_outputs['merge_split'].get_temp_files())
 
     output:
         temp(paths['desert_windows'])
@@ -618,11 +618,11 @@ rule calc_deserts:
 
 rule significant_windows:
     input:
-        windows=rules.calc_deserts.output,
-        chroms=paths['chr_list']\
+        windows=ancient(rules.calc_deserts.output),
+        chroms=ancient(paths['chr_list']\
             .replace('{directory}', dirs['admixed'])\
-            .replace('{model}', model),
-        pop=rules.generate_popfile.output
+            .replace('{model}', model)),
+        pop=ancient(rules.generate_popfile.output)
 
     output:
         paths['below_thresh']
