@@ -13,9 +13,8 @@ suppressMessages(library("dplyr"))
 
 toPct_Int.1_to_15Mb.fn = function(sampled.data.1_to_15Mb, pop.size, Mdl, chr_list){
 	 Pct_Intr.format = sampled.data.1_to_15Mb %>% 
-		setnames(c('sim.tsk','hapstrt','hapend', 'sample_ID', 'Winsize', 'n1', 'n2')) %>%
+		setnames(c('sim.tsk','hapstrt','hapend', 'Winsize', 'n1', 'n2')) %>%
 		mutate(Mdl=Mdl) %>%
-		select(-(sample_ID)) %>%
 		mutate(len_bp=(hapend-hapstrt)) %>% 
 		group_by(Mdl, Winsize, sim.tsk) %>%		# group by the Window size and the chr# 
 		summarise(sum_len_bp=sum(as.numeric(len_bp))) %>% 		# caclulate total introgressed based for each chr for a given window size

@@ -37,7 +37,7 @@ ecdf_bed:
 
 desert:
     jobname: 'desert'
-    n: 3
+    n: 2
 
 merge_split:
     jobname: 'merge-split'
