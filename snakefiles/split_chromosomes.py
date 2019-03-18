@@ -9,6 +9,8 @@ max_len = int(sys.argv[1])  # specify the max simulated size
 
 for line in sys.stdin:
     tokens = line.strip().split('\t')
+    # remove msp part of bedfile
+    tokens[0] = tokens[0].split('_')[-1]
     start = int(tokens[1])
     end = int(tokens[2])
     tokens.append("")  # overwrite below

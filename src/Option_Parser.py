@@ -58,7 +58,7 @@ class admixture_option_parser(ArgumentParser):
                           type=int,
                           dest="t_n1_n2",
                           default=145,
-                          help="Set N1 N2 split time in kya; default=350")
+                          help="Set N1 N2 split time in kya; default=145")
 
         self.add_argument("--time_N1_sample",
                           type=float,
