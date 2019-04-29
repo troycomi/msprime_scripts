@@ -7,8 +7,9 @@ __default__:
     "qos": '1day'
 
 vcf_to_sstar:
-    "n": 1
-    "time": '1-0'
+    "n": 5
+    "memory": '10G'
+    "time": '5-0'
     "jobname": 'vcf-to-sstar'
     "qos": '1wk'
 
@@ -25,9 +26,10 @@ build_db:
     "jobname": 'build-db'
 
 generate_ecdf:
-    "memory": '50G'
+    "n": 1
+    "memory": '250G'
     "jobname": 'generate-ecdf'
-    "time": '1-0'
+    "time": '5-0'
     "qos": '1wk'
 
 match_pvalue:
@@ -35,14 +37,14 @@ match_pvalue:
 
 ecdf_bed:
     "n": 5
-    "memory": '10G'
+    "memory": '50G'
     "jobname": 'ecdf-bed'
 
 desert:
     "jobname": 'desert'
-    "n": 3
-    "memory": '50G'
-    "time": '2-0'
+    "n": 5
+    "memory": '250G'
+    "time": '5-0'
     "qos": '1wk'
 
 merge_split:

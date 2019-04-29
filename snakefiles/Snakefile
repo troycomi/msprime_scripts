@@ -613,7 +613,8 @@ rule calc_deserts:
     shell:
         'echo {input.beds} | xargs zcat | '
         'python split_chromosomes.py {config[msprime][length]} | '
-        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' '
+        'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' | '
+        'gzip -c '
         '> {output}'
 
 rule significant_windows:
