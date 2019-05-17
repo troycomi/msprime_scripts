@@ -23,7 +23,7 @@ snakemake --cluster-config cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
-    --rerun-incomplete \
+#    --rerun-incomplete \
     --configfile config.yaml
 
 #snakemake --delete-temp-output

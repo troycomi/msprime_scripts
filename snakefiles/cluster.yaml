@@ -27,7 +27,7 @@ build_db:
 
 generate_ecdf:
     "n": 1
-    "memory": '250G'
+    "memory": '350G'
     "jobname": 'generate-ecdf'
     "time": '5-0'
     "qos": '1wk'

@@ -197,9 +197,9 @@ if (file.exists(ecdf_data)){
         c <- sim_chrms[i][[1]]
         print(paste0(' Loading NULL chromosome number: ',c))
         infile <- paste0(inputdir,dir,'/RegionFiles/', c,".windowcalc.gz")
-        dat <- fread(paste0('zcat ', infile), header=TRUE, select=c('s_star', 'n_region_ind_snps', 'pop'))
-        dat <- filter(dat, s_star>0)
-        null.dt <- rbind(null.dt, dat)
+        dat <- fread(paste0('zcat ', infile), header=TRUE, select=c('s_star', 'n_region_ind_snps', 'pop'), colClasses = c(s_star='integer64',n_region_ind_snps='integer',pop='character'))
+        dat <- filter(dat, s_star>0) %>% as.data.table()
+        null.dt <- rbind(null.dt, dat, use.names = TRUE, fill=TRUE)
         remove(dat)
         gc()
     }

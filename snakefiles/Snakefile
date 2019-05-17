@@ -444,7 +444,8 @@ rule generate_ecdf:
             '--inputdir {paths[base_output]} '
             '--null_dir /{dirs[null]} '
             '--max_chrm_null {params.chrom} '
-            '--ecdf_only > /dev/null'
+	    '--ecdf_only '
+#            '--ecdf_only > /dev/null'
 
 rule ecdf_bed:
     input:

@@ -69,7 +69,7 @@ msprime:
 
     batch_size: 100
 
-    null_simulations: 5000
+    null_simulations: 2000
     null_params: " -n 0.0 -d 0.0 \
                    -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                    -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
