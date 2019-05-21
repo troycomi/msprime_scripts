@@ -578,22 +578,24 @@ rule calc_admix:
                    sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
                    matchpvalue=config['s_star_ecdf']['matchpvalue'],
                    population='ASN',
-                   seed='*'),
+                   seed='[0-9]\\+'),
         eur=paths['ecdf_bed_merge_pop'].format(
                    sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
                    matchpvalue=config['s_star_ecdf']['matchpvalue'],
                    population='EUR',
-                   seed='*'),
+                   seed='[0-9]\\+'),
 
     shell:
-        'echo {input.asn} | xargs zcat | '
+        'find {paths[ecdf_bed_dir]} -regextype sed -regex \'{params.asn}\' | '
+        'xargs zcat | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "ASN: " sum_bp/{config[msprime][ASN]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
-        '> {output} \n'
-        'echo {input.eur} | xargs zcat | '
+        '> {output}\n'
+        'find {paths[ecdf_bed_dir]} -regextype sed -regex \'{params.eur}\' | '
+        'xargs zcat | '
         'awk \'BEGIN {{OFS="\\t"}} {{sum_bp+=$3-$2}} END '
             '{{print "EUR: " sum_bp/{config[msprime][EUR]}/{config[msprime][admixed_simulations]}/{config[msprime][length]}}} \' '
-        '>> {output}'
+        '>> {output}\n'
 
 rule calc_deserts:
     input:
@@ -606,13 +608,20 @@ rule calc_deserts:
     output:
         temp(paths['desert_windows'])
 
+    params:
+        beds=ancient(expand(paths['ecdf_bed_merge']\
+                   .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+                   .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']),
+                   seed='[0-9]\\+')),
+
     group: 'desert'
 
     conda:
         "../msprime.yml"
 
     shell:
-        'echo {input.beds} | xargs zcat | '
+        'find {paths[ecdf_bed_dir]} -regextype sed -regex \'{params.beds}\' | '
+        'xargs zcat | '
         'python split_chromosomes.py {config[msprime][length]} | '
         'awk \'BEGIN {{OFS="\\t"}} {{print $0, "{config[msprime][n1]}", "{config[msprime][n2]}"}}\' | '
         'gzip -c '

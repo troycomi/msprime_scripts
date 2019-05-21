@@ -2,6 +2,7 @@
 
 module load anaconda3
 conda activate msprime_scripts
+PATH=$PATH:/usr/licensed/anaconda3/2019.3/bin
 
 set -euo pipefail
 
