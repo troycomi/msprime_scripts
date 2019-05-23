@@ -27,7 +27,7 @@ build_db:
 
 generate_ecdf:
     "n": 1
-    "memory": '350G'
+    "memory": '200G'
     "jobname": 'generate-ecdf'
     "time": '5-0'
     "qos": '1wk'
@@ -37,7 +37,7 @@ match_pvalue:
 
 ecdf_bed:
     "n": 5
-    "memory": '50G'
+    "memory": '10G'
     "jobname": 'ecdf-bed'
 
 desert:

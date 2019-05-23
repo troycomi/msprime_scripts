@@ -2,6 +2,7 @@
 
 source ~/.bashrc
 conda activate msprime_scripts
+PATH=$PATH:/usr/licensed/anaconda3/2019.3/bin
 
 set -euo pipefail
 
@@ -23,7 +24,7 @@ snakemake --cluster-config cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
-#    --rerun-incomplete \
     --configfile config.yaml
+#    --rerun-incomplete
 
 #snakemake --delete-temp-output

@@ -13,23 +13,21 @@ suppressMessages(library("dplyr"))
 
 toPct_Int.1_to_15Mb.fn = function(sampled.data.1_to_15Mb, pop.size, Mdl, chr_list){
 	 Pct_Intr.format = sampled.data.1_to_15Mb %>%
-		setnames(c('sim.tsk','hapstrt','hapend', 'Winsize', 'n1', 'n2')) %>%
 		mutate(Mdl=Mdl) %>%
 		mutate(len_bp=(hapend-hapstrt)) %>%
 		group_by(Mdl, Winsize, sim.tsk) %>%		# group by the Window size and the chr#
 		summarise(sum_len_bp=sum(as.numeric(len_bp))) %>% 		# caclulate total introgressed based for each chr for a given window size
 		select(Mdl, Winsize,sim.tsk,sum_len_bp) %>%
-		mutate(Pct_Int=sum_len_bp/pop.size/(Winsize*1000000))
+		mutate(Pct_Int=sum_len_bp/pop.size/(Winsize*1000000)) %>%
+	  as.data.table()
 
-	Pct_Intr.format <- as.data.table(Pct_Intr.format)
 	setkey(Pct_Intr.format, sim.tsk, Winsize, Mdl)
-  	Pct_Intr.format = Pct_Intr.format[CJ(dt.chr_list$V1, unique(Winsize), unique(Mdl))] # <<<<--- ERROR Here: need to come up with a new way to check all chr are present
-  	Pct_Intr.format[is.na(Pct_Int), Pct_Int:=0]
-
-	Pct_Intr.format$n1 <- sampled.data.1_to_15Mb$n1
-	Pct_Intr.format$n2 <- sampled.data.1_to_15Mb$n2
-	Pct_Intr.format$admix <- paste(Pct_Intr.format$n1, Pct_Intr.format$n2, sep="_")
-
+	Pct_Intr.format <- merge(dt.chr_list, Pct_Intr.format, all=TRUE, by="sim.tsk") %>%
+	                   mutate(Pct_Int = ifelse(test = is.na(Pct_Int), yes = 0, no = Pct_Int)) %>%
+	                   mutate(n1 = unique(sampled.data.1_to_15Mb$n1)) %>%
+	                   mutate(n2 = unique(sampled.data.1_to_15Mb$n2)) %>%
+	                   mutate(admix = paste(n1, n2, sep="_")) %>%
+	                   as.data.table()
 
     	return(Pct_Intr.format)
 }
@@ -40,13 +38,14 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 	# If some windows in this data set are actually below the thrhld
 	if(nrow(data.1_to_15Mb.PctInt %>% filter(Pct_Int<THRHLD))>0){
 		data.1_to_15Mb.PctInt.prop_blw_thrhld = data.1_to_15Mb.PctInt %>%
+		filter(!is.na(Mdl)) %>%
 		filter(Pct_Int<THRHLD) %>%		# Find all chr for all winsizes where the pct_int is below the thrhld (i.e. the chr is depleted)
 		mutate(tally=1) %>%			# add a flag
 		group_by(Mdl, Winsize) %>%		# group Window sizes together
 		summarise(sum_tally=sum(as.numeric(tally))) %>%	# count up how many chr for a given window size are depleted
-		mutate(prop_blw_thrhld=sum_tally/n_chr)	# turn that count into to proportion of the total number of simulated chromosomes
+		mutate(prop_blw_thrhld=sum_tally/n_chr)	%>% # turn that count into to proportion of the total number of simulated chromosomes
+    as.data.table()
 
-		data.1_to_15Mb.PctInt.prop_blw_thrhld = as.data.table(data.1_to_15Mb.PctInt.prop_blw_thrhld)
 
 		setkey(data.1_to_15Mb.PctInt.prop_blw_thrhld, Winsize, sum_tally, prop_blw_thrhld, Mdl)
    		# Fill in any rows where the prop_blw_thrhld = 0
@@ -60,9 +59,10 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 		      }
 		}
 		# Add the admix column
-		data.1_to_15Mb.PctInt.prop_blw_thrhld$n1 <- data.1_to_15Mb.PctInt$n1
-		data.1_to_15Mb.PctInt.prop_blw_thrhld$n2 <- data.1_to_15Mb.PctInt$n2
-		data.1_to_15Mb.PctInt.prop_blw_thrhld$admix <- data.1_to_15Mb.PctInt$admix
+		data.1_to_15Mb.PctInt.prop_blw_thrhld <- data.1_to_15Mb.PctInt.prop_blw_thrhld %>%
+		                                          mutate(n1 = unique(data.1_to_15Mb.PctInt$n1)) %>%
+		                                          mutate(n2 = unique(data.1_to_15Mb.PctInt$n2)) %>%
+		                                          mutate(admix = unique(data.1_to_15Mb.PctInt$admix))
 
 		return(data.1_to_15Mb.PctInt.prop_blw_thrhld)
 	}else{
@@ -85,8 +85,13 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 #######################
 #######################
 
-dt.sample.1_to_15Mb = fread(paste0('zcat ',sample.1_to_15Mb), header=FALSE, verbose=FALSE, showProgress=FALSE)
-dt.chr_list = fread(chr_list, header=FALSE, verbose=FALSE, showProgress = FALSE)
+dt.sample.1_to_15Mb = fread(paste0('zcat ',sample.1_to_15Mb),
+                            header=FALSE, verbose=FALSE, showProgress=FALSE,
+                            col.names = c('sim.tsk','hapstrt','hapend', 'Winsize', 'n1', 'n2') )
+dt.chr_list = fread(chr_list,
+                    header=FALSE, verbose=FALSE, showProgress = FALSE,
+                    col.names = c('sim.tsk'))
+
 n_chr = nrow(dt.chr_list)
 
 dt.sample.1_to_15Mb.PctInt = toPct_Int.1_to_15Mb.fn(dt.sample.1_to_15Mb, pop.size, mdl, dt.chr_list)
