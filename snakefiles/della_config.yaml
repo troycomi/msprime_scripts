@@ -31,7 +31,7 @@ paths:
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
-    ecdf_data: "__NULL_DIR__/SstarECDF_maxchrm_{chrom}.RData.gz"
+    ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
     ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
                      .match_sig_N_{matchpvalue}.isc_0.bed"
@@ -56,7 +56,7 @@ msprime:
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
     model: "Sriram"
-    length: 5000000
+    length: 1000000
     n1: 0.1
     n2: 0.0
     EUR: 1006
@@ -70,7 +70,7 @@ msprime:
                   -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                   -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 2
+    admixed_simulations: 10
     admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                       -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                       -G AF_B_0 -G B_AF_0"
@@ -95,9 +95,7 @@ match_pct:
     informative_site_range: "0"
 
 s_star_ecdf:
-    # Note, to have no filter, set p values to "ALL" and filter to "--nofilter"
     sstarpvalue: "0.01"
     matchpvalue: "0.05"
-    filter: "--filter"
 
 window_thresh: 0.000316

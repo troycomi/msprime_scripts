@@ -434,26 +434,24 @@ rule generate_ecdf:
         paths['ecdf_data'].format(chrom=len(null_seeds))
 
     params:
-        chrom=len(null_seeds),
+        region_dir=os.path.dirname(paths['window_calc']).format(
+            directory=dirs['null'])
 
     conda:
-        "sstar_ecdf.yml"
+        "../msprime.yml"
 
     shell:
-        'Rscript SstarECDFpvalueCalculation.R '
-            '--inputdir {paths[base_output]} '
-            '--null_dir /{dirs[null]} '
-            '--max_chrm_null {params.chrom} '
-	    '--ecdf_only '
-#            '--ecdf_only > /dev/null'
+        'python ../src/Sstar_ECDF.py '
+            'build-null-db '
+            '--region-dir {params.region_dir} '
+            '--chr-list {input[0]} '
+            '--outfile {output} '
 
 rule ecdf_bed:
     input:
-        ancient(paths['chr_list'].format(model=model,
-                                 directory=dirs['admixed'])),
         ancient(paths['window_calc'].replace('{directory}', dirs['admixed'])),
         ancient(paths['pvalue_table'].replace('{directory}', dirs['admixed'])),
-        ecdf=ancient(paths['ecdf_data'].format(chrom=len(null_seeds))),
+        ecdf=ancient(paths['ecdf_data']),
         temp_files=ancient(group_outputs['admixed_vcf'].get_temp_files()),
         temp_files2=ancient(group_outputs['match_pvalue'].get_temp_files()),
 
@@ -463,24 +461,28 @@ rule ecdf_bed:
             .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
 
     params:
-        chrom=len(admixed_seeds)
+        region_dir=os.path.dirname(paths['window_calc']).format(
+            directory=dirs['admixed']),
+        s_star=config['s_star_ecdf']['sstarpvalue'],
+        match_p=config['s_star_ecdf']['matchpvalue'],
+        tsv_dir=os.path.dirname(paths['pvalue_table']).format(
+            directory=dirs['admixed']),
 
     conda:
-        "sstar_ecdf.yml"
+        "../msprime.yml"
 
     group: 'ecdf_bed'
 
     shell:
-        'Rscript SstarECDFpvalueCalculation.R '
-            '--inputdir {paths[base_output]} '
-            '--outputdir {paths[ecdf_bed_dir]} '
-            '--admix_dir /{dirs[admixed]} '
-            '--max_chrm_admix {params.chrom} '
-            '--ecdf {input.ecdf} '
-            '--sstarpval {config[s_star_ecdf][sstarpvalue]} '
-            '--matchpval {config[s_star_ecdf][matchpvalue]} '
-            '--chromosome {wildcards.seed} '
-            '{config[s_star_ecdf][filter]} &> /dev/null'
+        'python ../src/Sstar_ECDF.py '
+            'generate-bed '
+            '--null-db {input.ecdf} '
+            '--sstar-pval {params.s_star} '
+            '--match-pval {params.match_p} '
+            '--region-dir {params.region_dir} '
+            '--tsv-dir {params.tsv_dir} '
+            '--chrom {wildcards.seed} '
+            '--outfile {output}'
 
 rule merge_bed:
     input:
