@@ -1,11 +1,9 @@
 ---
 paths:
     # path to Admixture_Simulate.py
-    msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/\
-                     msprime/bin/src/Admixture_Simulation.py"
+    msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/src/Admixture_Simulation.py"
     # path to sstar windowed calulation directory (Ben's bin)
-    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/\
-                Sstar/s_star_git"
+    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git/"
     vcftools_bin: "/usr/local/bin/vcftools"
     bedops: "/usr/local/bin/"
 
@@ -60,7 +58,13 @@ msprime:
     base_params: "-r 216"
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
-    model: "Sriram"
+                # "Tenn"
+                # "Sriram"
+                # "SplitPop"
+                # "OutOfAfr"
+                # "Tenn_nomod"
+                # "Tenn_pulsed"
+    model: "Tenn"
     length: 10000000
     n1: 0.03
     n2: 0.0
