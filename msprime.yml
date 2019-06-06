@@ -2,7 +2,6 @@ name: msprime_scripts
 channels:
   - bioconda
   - conda-forge
-  - anaconda
   - defaults
 dependencies:
   - aioeasywebdav=2.2.0=py36_0
@@ -12,7 +11,7 @@ dependencies:
   - async-timeout=3.0.1=py_1000
   - atomicwrites=1.2.1=py_0
   - attrs=18.2.0=py_0
-  - bcftools=1.9
+  - bcftools=1.9=h4da6232_0
   - bcrypt=3.1.4=py36h470a237_0
   - bedtools=2.27.1=he941832_2
   - blas=1.1=openblas
@@ -55,7 +54,7 @@ dependencies:
   - gsl=2.2.1=blas_openblas_4
   - h5py=2.8.0=py36he5c79e1_5
   - harfbuzz=1.9.0=h04dbb29_1
-  - hdf5=1.10.4
+  - hdf5=1.10.4=nompi_h5598ddc_1003
   - htslib=1.9=hc238db4_4
   - httplib2=0.12.0=py36_1000
   - icu=58.2=hfc679d8_0
@@ -162,3 +161,4 @@ dependencies:
   - yaml=0.1.7=h470a237_1
   - yarl=1.3.0=py36h470a237_0
   - zlib=1.2.11=ha838bed_2
+
