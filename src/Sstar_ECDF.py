@@ -171,7 +171,7 @@ def filter_by_sstar(window, null_db, sstar_pval) -> pd.DataFrame:
         })
     return pd.concat([
         table.loc[
-            null_db.ecdf(k[0], k[1], table.s_star) >= ecdf_val,
+            np.around(null_db.ecdf(k[0], k[1], table.s_star), 4) >= ecdf_val,
             ('msp_ID', 'start', 'end')
         ]
         for k, table in window.groupby(['pop', 'n_region_ind_snps'])
