@@ -223,7 +223,7 @@ rule process_vcf:
     group: 'vcf_to_sstar'
 
     shell:
-        "module load samtools \n"
+#        "module load samtools \n"
         "zcat {input} | "
             "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
                 "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "

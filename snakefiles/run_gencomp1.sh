@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source ~/.bashrc
+conda activate base
 conda activate msprime_scripts
 
 set -euo pipefail
@@ -15,7 +16,9 @@ set -euo pipefail
 snakemake --unlock
 
 ##perform workflow.
-snakemake --cluster-config cluster.yaml \
+snakemake \
+    --rerun-incomplete \
+    --cluster-config cluster.yaml \
     --cluster "sbatch --cpus-per-task={cluster.n} \
         --mem={cluster.memory} --time={cluster.time} --qos={cluster.qos} \
         --output=slurm_out/{cluster.jobname}_%A --job-name={cluster.jobname} \
@@ -23,7 +26,6 @@ snakemake --cluster-config cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
-#    --rerun-incomplete \
     --configfile config.yaml
 
 #snakemake --delete-temp-output
