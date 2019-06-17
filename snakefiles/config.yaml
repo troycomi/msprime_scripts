@@ -26,6 +26,9 @@ paths:
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
 #    null_db: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/Sriram/null/v_02192019/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
+    split_chrom_dir: "__NULL_DIR__/split_db"
+    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
+    split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
     ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\

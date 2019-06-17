@@ -31,6 +31,27 @@ def build_null_db(region_dir, chr_list, outfile):
     click.echo('Done')
 
 
+@main.command()
+@click.option('--outfile',
+              help='File location for combined pandas dataframe')
+@click.argument('input-dbs', nargs=-1)
+def combine_null_dbs(outfile, input_dbs):
+    '''
+    Combine several null databases into a single pickle
+    '''
+    db = Null_DB()
+    db.load(input_dbs[0])
+    click.echo(input_dbs[0])
+    for filename in input_dbs[1:]:
+        db2 = Null_DB()
+        db2.load(filename)
+        db.combine(db2)
+        click.echo(filename)
+
+    db.save(outfile)
+    click.echo('Done')
+
+
 def region_files(region_dir: str,
                  chromosomes: List[str],
                  basename: str = '{chrom}.windowcalc.gz'):
@@ -76,6 +97,9 @@ def generate_bed(null_db,
                  chr_list,
                  chrom,
                  outfile):
+    '''
+    Generate bed file
+    '''
     # load null db to use throughout
     null = Null_DB()
     null.load(null_db)
@@ -194,6 +218,12 @@ class Null_DB():
                                                's_star'])['winstart'].count()
 
         self.DB = self.DB.combine(hist, lambda s1, s2: s1+s2, fill_value=0)
+
+    def combine(self, other):
+        '''
+        Combine this database with another null DB object
+        '''
+        self.DB = self.DB.combine(other.DB, lambda s1, s2: s1+s2, fill_value=0)
 
     def ecdf(self, pop: str, n_region_ind_snps: int, values) -> np.array:
         '''
