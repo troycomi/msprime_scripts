@@ -27,10 +27,10 @@ build_db:
 
 generate_ecdf:
     "n": 1
-    "memory": '200G'
+    "memory": '100G'
     "jobname": 'generate-ecdf'
-    "time": '5-0'
-    "qos": '1wk'
+    "time": '10-0'
+    "qos": 'long'
 
 match_pvalue:
     "jobname": 'match-pvalue'

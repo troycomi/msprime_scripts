@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source ~/.bashrc
+conda activate base
 conda activate msprime_scripts
 
 set -euo pipefail
@@ -16,6 +17,7 @@ snakemake --unlock
 
 ##perform workflow.
 snakemake \
+    --rerun-incomplete \
     --cluster-config cluster.yaml \
     --cluster "sbatch --cpus-per-task={cluster.n} \
         --mem={cluster.memory} --time={cluster.time} --qos={cluster.qos} \
