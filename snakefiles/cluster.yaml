@@ -32,6 +32,11 @@ generate_ecdf:
     "time": '5-0'
     "qos": '1wk'
 
+join_ecdf:
+    memory: '1G'
+    jobname: 'join-ecdf'
+    time: '0-2'
+
 match_pvalue:
     "jobname": 'match-pvalue'
 
