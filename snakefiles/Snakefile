@@ -223,6 +223,7 @@ rule process_vcf:
 
     shell:
 #        "module load samtools \n"
+        "which tabix \n"
         "zcat {input} | "
             "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
                 "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
