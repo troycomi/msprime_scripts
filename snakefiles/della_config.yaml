@@ -31,6 +31,9 @@ paths:
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
+    split_chrom_dir: "__NULL_DIR__/split_db"
+    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
+    split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
     ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
@@ -62,7 +65,7 @@ msprime:
     EUR: 1006
     ASN: 1008
 
-    batch_size: 10
+    batch_size: 5
 
     null_simulations: 10
     null_params: "-n 0.0 -d 0.0 \

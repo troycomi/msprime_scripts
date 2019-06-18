@@ -39,6 +39,7 @@ localrules:
     generate_popfile,
     generate_options,
     haplotype_to_sample,
+    split_ecdf
 
 batch = config['msprime']['batch_size']
 group_inputs = []
@@ -422,7 +423,15 @@ rule match_pct_pvalue:
            #'--overlap-regions {input.overlap} '
             '| bgzip > {output}'
 
-rule generate_ecdf:
+def get_split_names(wildcards):
+    '''
+    return prefix and suffix for split output
+    '''
+    filename = paths['split_chrom']
+    prefix, suffix = filename.split('{part}')
+    return {'prefix': prefix, 'suffix': suffix}
+
+checkpoint split_ecdf:
     input:
         ancient(paths['chr_list'].format(model=model,
                                  directory=dirs['null'])),
@@ -432,7 +441,24 @@ rule generate_ecdf:
         ancient(group_outputs['null_vcf'].get_temp_files())
 
     output:
-        paths['ecdf_data'].format(chrom=len(null_seeds))
+        directory(paths['split_chrom_dir'])
+
+    params:
+        splitnames=get_split_names
+
+    shell:
+        'mkdir {output}\n'
+        'split '
+            '--lines={batch} '
+            '--additional-suffix={params.splitnames[suffix]} '
+            '{input[0]} {params.splitnames[prefix]}'
+
+rule generate_ecdf:
+    input:
+        paths['split_chrom']
+
+    output:
+        temp(paths['split_null_db'])
 
     params:
         region_dir=os.path.dirname(paths['window_calc']).format(
@@ -447,6 +473,41 @@ rule generate_ecdf:
             '--region-dir {params.region_dir} '
             '--chr-list {input[0]} '
             '--outfile {output} '
+
+def aggregate_ecdf_input(wildcards):
+    if not os.path.exists(paths['split_chrom_dir']):
+        checkpoints.split_ecdf.get(**wildcards).output[0]
+
+    split_chrom = paths['split_chrom']
+    result = expand(
+            paths['split_null_db'],
+            part=glob_wildcards(split_chrom).part)
+    return result
+
+def get_split_to_delete(wildcards):
+    path = paths['split_chrom']
+    path = path.replace('{part}', '*')
+    return path
+
+rule join_ecdf:
+    input:
+        aggregate_ecdf_input
+
+    output:
+        paths['ecdf_data']
+
+    params:
+        old_chrm=get_split_to_delete
+
+    conda:
+        "../msprime.yml"
+
+    shell:
+        'python ../src/Sstar_ECDF.py '
+            'combine-null-dbs '
+            '--outfile {output} '
+            '{input} \n'
+        'rm {params.old_chrm}'
 
 rule ecdf_bed:
     input:

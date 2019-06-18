@@ -106,6 +106,96 @@ def test_main_build_null_db():
         ase(db.DB, pd.Series([1, 4, 1, 3, 1, 2, 8, 1, 3], index=index))
 
 
+def test_main_combine_null_dbs():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # build up null dbs
+        index = pd.MultiIndex.from_tuples([
+            ('ASN', 161, 25211),
+            ('ASN', 162, 25212),
+            ('ASN', 164, 25211),
+            ('ASN', 164, 25212),
+            ('EUR', 161, 25211),
+            ('EUR', 162, 25211),
+            ('EUR', 162, 25212),
+            ('EUR', 164, 25211),
+            ('EUR', 164, 25212),
+            ('EUR', 164, 25213),
+            ('EUR', 164, 25214),
+            ('EUR', 164, 25215),
+        ], names=['pop', 'n_region_ind_snps', 's_star'])
+        dat = list(range(12))
+        null_db = Sstar_ECDF.Null_DB()
+        null_db.DB = pd.Series(dat, index=index)
+        null_db.save('null.pkl')
+
+        index = pd.MultiIndex.from_tuples([
+            ('ASN', 161, 25211),
+            ('ASN', 162, 25212),
+            ('ASN', 164, 25211),
+            ('ASN', 164, 25212),
+            ('EUR', 161, 25211),
+            ('EUR', 162, 25211),
+            ('EUR', 162, 25212),
+            ('EUR', 164, 25211),
+            ('EUR', 164, 25212),
+            ('EUR', 164, 25213),
+            ('EUR', 164, 25214),
+            ('EUR', 164, 25215),
+        ], names=['pop', 'n_region_ind_snps', 's_star'])
+        dat = list(range(0, 24, 2))
+        null_db = Sstar_ECDF.Null_DB()
+        null_db.DB = pd.Series(dat, index=index)
+        null_db.save('null2.pkl')
+
+        index = pd.MultiIndex.from_tuples([
+            ('ASN', 161, 25211),
+            ('ASN', 162, 25212),
+            ('ASN', 164, 25211),
+            ('ASN', 164, 25212),
+            ('EUR', 161, 25211),
+            ('EUR', 162, 25211),
+            ('EUR', 162, 25212),
+            ('EUR', 164, 25211),
+            ('EUR', 164, 25212),
+            ('EUR', 164, 25213),
+            ('EUR', 164, 25214),
+            ('EUR', 164, 25215),
+        ], names=['pop', 'n_region_ind_snps', 's_star'])
+        dat = list(range(0, 36, 3))
+        null_db = Sstar_ECDF.Null_DB()
+        null_db.DB = pd.Series(dat, index=index)
+        null_db.save('null3.pkl')
+
+        # run main
+        result = runner.invoke(
+            Sstar_ECDF.main,
+            'combine-null-dbs '
+            '--outfile test.pkl '
+            'null.pkl null2.pkl null3.pkl'
+        )
+        assert result.exit_code == 0
+
+        # check output files
+        db = Sstar_ECDF.Null_DB()
+        db.load('test.pkl')
+        index = pd.MultiIndex.from_tuples([
+            ('ASN', 161, 25211),
+            ('ASN', 162, 25212),
+            ('ASN', 164, 25211),
+            ('ASN', 164, 25212),
+            ('EUR', 161, 25211),
+            ('EUR', 162, 25211),
+            ('EUR', 162, 25212),
+            ('EUR', 164, 25211),
+            ('EUR', 164, 25212),
+            ('EUR', 164, 25213),
+            ('EUR', 164, 25214),
+            ('EUR', 164, 25215),
+        ], names=['pop', 'n_region_ind_snps', 's_star'])
+        ase(db.DB, pd.Series(range(0, 72, 6), index=index))
+
+
 def test_main_generate_bed():
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -469,6 +559,58 @@ def test_null_db_read_windowcalc(null_db):
         ''
     )
     null_db.read_windowcalc(infile)
+
+    index = pd.MultiIndex.from_tuples([
+        ('ASN', 162, 25212),
+        ('EUR', 161, 25211),
+        ('EUR', 162, 25211),
+        ('EUR', 162, 25212),
+    ], names=['pop', 'n_region_ind_snps', 's_star'])
+    ase(null_db.DB, pd.Series([1, 2, 2, 5], index=index))
+
+
+def test_null_db_combine(null_db):
+    infile = StringIO(
+        'chrom\twinstart\twinend\tn_snps\tn_ind_snps\t'
+        'n_region_ind_snps\tind_id\tpop\ts_star\n' +
+        '1 0 50000 333 4 161 msp_110 EUR 25211\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_111 EUR 25211\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_112 EUR 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_113 EUR 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_114 EUR 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_115 EUR 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_116 EUR 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_116 ASN 25212\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_116 EUR 0\n'.replace(' ', '\t') +  # skip
+        ''
+    )
+    null_db.read_windowcalc(infile)
+
+    index = pd.MultiIndex.from_tuples([
+        ('ASN', 162, 25212),
+        ('EUR', 161, 25211),
+        ('EUR', 162, 25211),
+        ('EUR', 162, 25212),
+    ], names=['pop', 'n_region_ind_snps', 's_star'])
+    ase(null_db.DB, pd.Series([1, 1, 1, 5], index=index))
+
+    infile = StringIO(
+        'chrom\twinstart\twinend\tn_snps\tn_ind_snps\t'
+        'n_region_ind_snps\tind_id\tpop\ts_star\n' +
+        '1 0 50000 333 4 161 msp_110 EUR 25211\n'.replace(' ', '\t') +
+        '1 0 50000 333 4 162 msp_111 EUR 25211\n'.replace(' ', '\t') +
+        ''
+    )
+    null_db2 = Sstar_ECDF.Null_DB()
+    null_db2.read_windowcalc(infile)
+
+    index = pd.MultiIndex.from_tuples([
+        ('EUR', 161, 25211),
+        ('EUR', 162, 25211),
+    ], names=['pop', 'n_region_ind_snps', 's_star'])
+    ase(null_db2.DB, pd.Series([1, 1], index=index))
+
+    null_db.combine(null_db2)
 
     index = pd.MultiIndex.from_tuples([
         ('ASN', 162, 25212),
