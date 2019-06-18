@@ -25,7 +25,12 @@ build_db:
 generate_ecdf:
     memory: '1G'
     jobname: 'generate-ecdf'
-    time: '1-0'
+    time: '0-2'
+
+join_ecdf:
+    memory: '1G'
+    jobname: 'join-ecdf'
+    time: '0-2'
 
 match_pvalue:
     jobname: 'match-pvalue'
