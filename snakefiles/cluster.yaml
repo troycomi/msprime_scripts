@@ -1,14 +1,14 @@
 ---
 __default__:
     "n": 1
-    "memory": '5G'
+    "memory": '2G'
     "time": '0-23:00:00'
     "jobname": 'snake'
     "qos": '1day'
 
 vcf_to_sstar:
     "n": 1
-    "memory": '10G'
+    "memory": '2G'
     "time": '5-0'
     "jobname": 'vcf-to-sstar'
     "qos": '1wk'
@@ -27,18 +27,22 @@ build_db:
 
 generate_ecdf:
     "n": 1
-    "memory": '100G'
+    "memory": '10G'
     "jobname": 'generate-ecdf'
-    "time": '10-0'
-    "qos": 'long'
+    "time": '5-0'
+    "qos": '1wk'
 
 join_ecdf:
-    memory: '1G'
-    jobname: 'join-ecdf'
-    time: '0-2'
+    "memory": '15G'
+    "jobname": 'join-ecdf'
+    "time": '14-0'
+    "qos":  'long'
 
 match_pvalue:
     "jobname": 'match-pvalue'
+    "time": '5-0'
+    "qos": '1wk'
+    "memory": '2G'
 
 ecdf_bed:
     "n": 1

@@ -224,15 +224,18 @@ rule process_vcf:
 
     shell:
 #        "module load samtools \n"
-        "which tabix \n"
+        #"which tabix \n"
+        "set -x \n"
         "zcat {input} | "
             "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
                 "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
             "bgzip -c > {output.mod} \n"
         "tabix -fp vcf {output.mod} \n"
-        "{paths[vcftools_bin]} --gzvcf {output.mod} "
+        #"{paths[vcftools_bin]} --gzvcf {output.mod} "
+        "vcftools --gzvcf {output.mod} "
             "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
-            "--recode --stdout 2>/dev/null | "
+            #"--recode --stdout 2>/dev/null | "
+            "--recode --stdout | "
             "bgzip -c > {output.arch} \n"
         "tabix -fp vcf {output.arch}"
 
@@ -450,7 +453,7 @@ checkpoint split_ecdf:
         'mkdir {output}\n'
         'split '
             '--lines={batch} '
-            '--additional-suffix={params.splitnames[suffix]} '
+#            '--additional-suffix={params.splitnames[suffix]} '
             '{input[0]} {params.splitnames[prefix]}'
 
 rule generate_ecdf:

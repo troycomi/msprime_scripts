@@ -3,7 +3,7 @@ paths:
     # path to Admixture_Simulate.py
     msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/src/Admixture_Simulation.py"
     # path to sstar windowed calulation directory (Ben's bin)
-    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git/"
+    sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git"
     vcftools_bin: "/usr/local/bin/vcftools"
     bedops: "/usr/local/bin/"
 
@@ -25,7 +25,8 @@ paths:
 #    null_db: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/Sriram/null/v_02192019/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     split_chrom_dir: "__NULL_DIR__/split_db"
-    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
+#    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
+    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}"
     split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
