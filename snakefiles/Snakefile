@@ -10,7 +10,7 @@ from get_batch_files import group_rule_input,\
 random.seed(1)
 null_seeds = random.sample(range(1, 1<<31),
                            config['msprime']['null_simulations'])
-random.seed(2)
+random.seed(config['msprime']['base_seed'])
 admixed_seeds = random.sample(range(1, 1<<31),
                               config['msprime']['admixed_simulations'])
 

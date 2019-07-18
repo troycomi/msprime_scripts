@@ -55,6 +55,8 @@ paths:
     ecdf_bed_batch: "__ECDF_BED_DIR__/eb_{id}.temp"
 
 msprime:
+    # the base seed for admixed simulations, the seed for null is always '1'
+    base_seed: 2
     base_params: "-r 216"
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well

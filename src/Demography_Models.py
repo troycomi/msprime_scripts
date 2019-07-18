@@ -1050,10 +1050,16 @@ class Sriram_demography(Base_demography):
 
 
 class SplitPop_demography(Base_demography):
+    def __init__(self, options):
+        # add in new options for split population
+        self.N_SP = options.split_population_size
+        self.f_SP = options.split_population_proportion
+        # use all normal options
+        Base_demography.__init__(self, options)
+
     def set_constants(self):
         Base_demography.set_constants(self)
 
-        self.N_SP = 100
         # split population off of B
         self.T_SP = 54e3 / self.generation_time
 
@@ -1211,7 +1217,7 @@ class SplitPop_demography(Base_demography):
                 time=self.T_SP,
                 source=ids['B'],
                 destination=ids['SP'],
-                proportion=0.1),
+                proportion=self.f_SP),
 
             # SplitPop is set at size Ne=100
             msprime.PopulationParametersChange(

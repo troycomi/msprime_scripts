@@ -39,6 +39,8 @@ def compare_options(options, nondefault={}):
                 'option_file': None,
                 'default_options': None,
                 'out_dir': None,
+                'split_population_proportion': 0.1,
+                'split_population_size': 100,
                 }
 
     for k, v in nondefault.items():

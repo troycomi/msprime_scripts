@@ -59,15 +59,16 @@ paths:
     null_dir: "__BASE_OUTPUT__/null"
 
 msprime:
+    base_seed: 2
     base_params: "-r 216"
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
-                # "Tenn"
-                # "Sriram"
-                # "SplitPop"
-                # "OutOfAfr"
-                # "Tenn_nomod"
-                # "Tenn_pulsed"
+        # "Tenn"
+        # "Sriram"
+        # "SplitPop"
+        # "OutOfAfr"
+        # "Tenn_nomod"
+        # "Tenn_pulsed"
     model: "Tenn"
     length: 10000000
     n1: 0.03
