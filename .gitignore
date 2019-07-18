@@ -2,3 +2,4 @@
 .coverage
 *.swp
 .snakemake
+run_*.out

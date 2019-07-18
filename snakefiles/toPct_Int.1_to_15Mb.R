@@ -49,7 +49,8 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 
 		setkey(data.1_to_15Mb.PctInt.prop_blw_thrhld, Winsize, sum_tally, prop_blw_thrhld, Mdl)
    		# Fill in any rows where the prop_blw_thrhld = 0
-		for(i in seq(5,10)){
+		#for(i in seq(5,10)){
+		for(i in seq(1,10)){
 		      if( nrow(filter(data.1_to_15Mb.PctInt.prop_blw_thrhld, Winsize==i))!=1 ){
 		        data.1_to_15Mb.PctInt.prop_blw_thrhld = rbind(data.1_to_15Mb.PctInt.prop_blw_thrhld,
 		                                                      data.table(Mdl=mdl,
@@ -69,7 +70,8 @@ prop_blw_thrhld.fn = function(data.1_to_15Mb.PctInt, THRHLD, Mdl){
 		## If none of the windows in this data set are below the thrhld (i.e. none of the chr at any window size are depleted)
 		# Write an empty data table where for each window size, report 0 chr are below thrhld
 		data.empty = data.table()
-		for(i in seq(5,10)){
+		#for(i in seq(5,10)){
+		for(i in seq(1,10)){
 			data.empty = rbind(data.empty, data.table(Mdl=Mdl,
 								  Winsize=i,
 								  sum_tally=0,

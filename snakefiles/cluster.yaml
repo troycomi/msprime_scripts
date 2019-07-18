@@ -9,7 +9,7 @@ __default__:
 vcf_to_sstar:
     "n": 1
     "memory": '2G'
-    "time": '5-0'
+    "time": '2-0'
     "jobname": 'vcf-to-sstar'
     "qos": '1wk'
 
@@ -40,7 +40,7 @@ join_ecdf:
 
 match_pvalue:
     "jobname": 'match-pvalue'
-    "time": '5-0'
+    "time": '2-0'
     "qos": '1wk'
     "memory": '2G'
 
@@ -52,9 +52,9 @@ ecdf_bed:
 desert:
     "jobname": 'desert'
     "n": 1
-    "memory": '250G'
-    "time": '5-0'
-    "qos": '1wk'
+    "memory": '10G'
+    "time": '0-23:00:00'
+    "qos": '1day'
 
 merge_split:
     "jobname": 'merge-split'

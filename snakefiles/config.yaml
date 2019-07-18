@@ -68,7 +68,7 @@ msprime:
                 # "OutOfAfr"
                 # "Tenn_nomod"
                 # "Tenn_pulsed"
-    model: "Tenn"
+    model: "SplitPop"
     length: 10000000
     n1: 0.03
     n2: 0.0
