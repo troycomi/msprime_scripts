@@ -80,7 +80,7 @@ dependencies:
   - libstdcxx-ng=8.2.0=hdf63c60_1
   - libtiff=4.0.10=he6b73bb_1
   - libtool=2.4.6=h470a237_2
-  - libuuid=2.32.1=h470a237_2
+  - libuuid=2.32.1
   - libxcb=1.13=h470a237_2
   - libxml2=2.9.8=h422b904_5
   - markupsafe=1.1.0=py36h470a237_0
