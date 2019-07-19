@@ -79,9 +79,9 @@ def test_exeception_options():
 
     with pytest.raises(ValueError) as e:
         opts = admixture_option_parser().parse_args(
-            ['--haplo', '--options', '--debug'])
+            ['--haplo', '--options', '--debug', '--pi'])
         file_printer(opts)
-    assert 'Expected at most one output to stdout, got 3 instead.' in str(e)
+    assert 'Expected at most one output to stdout, got 4 instead.' in str(e)
 
 
 def test_basename():
@@ -206,6 +206,43 @@ def test_build_haplo(tmp_path):
     fp = file_printer(opts)
     fp.build_files()
     assert fp.files['haplo'] == os.path.join(str(tmp_path), 'test.txt')
+
+
+def test_build_pi(tmp_path):
+    opts = admixture_option_parser().parse_args([])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] is None
+
+    opts = admixture_option_parser().parse_args(['--pi'])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] == sys.stdout
+
+    opts = admixture_option_parser().parse_args(
+        ['--pi', '--out-dir', str(tmp_path)])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] == sys.stdout
+
+    opts = admixture_option_parser().parse_args(
+        ['--out-dir', str(tmp_path)])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] == os.path.join(
+        str(tmp_path), 'pi.txt')
+
+    opts = admixture_option_parser().parse_args(
+        ['--pi', 'test.txt'])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] == os.path.join(os.getcwd(), 'test.txt')
+
+    opts = admixture_option_parser().parse_args(
+        ['--pi', 'test.txt', '--out-dir', str(tmp_path)])
+    fp = file_printer(opts)
+    fp.build_files()
+    assert fp.files['pi'] == os.path.join(str(tmp_path), 'test.txt')
 
 
 def test_build_option(tmp_path):
@@ -446,6 +483,20 @@ def test_print_vcf():
         output = output.getvalue().split('\n')
         assert "##source=msprime 0.6.1" == output[1]
         assert len(output[5].split('\t')) == 1021
+
+
+def test_print_pi():
+    output = io.StringIO()
+    opts = admixture_option_parser().parse_args([])
+    with file_printer(opts) as fp:
+        # when writer is still none
+        fp.print_pi(None)
+        model = Demography_Models.Base_demography(opts)
+        ts = next(model.simulate(1))
+        fp.writers['pi'] = output
+        fp.print_pi(ts)
+
+        assert float(output.getvalue()) == pytest.approx(3.07524e-4, 0.1)
 
 
 def test_print_ils():

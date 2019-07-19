@@ -2,6 +2,7 @@ import sys
 import gzip
 import os.path
 from Option_Parser import admixture_option_parser
+import allel
 
 
 def get_basename(file):
@@ -25,6 +26,7 @@ class file_printer(object):
         self.files['vcf'] = options.vcf_file
         self.files['popfile'] = options.popfile_file
         self.files['f4dstat'] = options.f4dstat_file
+        self.files['pi'] = options.pi_file
         self.out_dir = options.out_dir
 
         self.validate_options()
@@ -66,6 +68,7 @@ class file_printer(object):
         self.build_popfile(print_all)
         self.build_vcf(print_all)
         self.build_f4dstat(print_all)
+        self.build_pi(print_all)
 
     class file_struct:
         def __init__(self, default, fmt="{}"):
@@ -140,6 +143,13 @@ class file_printer(object):
                            {'haplo':
                             self.file_struct(
                                 self.get_filename('.bed.merged.gz'))},
+                           print_all,
+                           allow_stdout=True)
+
+    def build_pi(self, print_all):
+        self.build_generic('pi',
+                           {'pi':
+                            self.file_struct('pi.txt')},
                            print_all,
                            allow_stdout=True)
 
@@ -285,6 +295,20 @@ class file_printer(object):
             return
 
         tree_sequence.write_vcf(writer, 2)
+
+    def pi_needed(self):
+        return self.writers['pi'] is not None
+
+    def print_pi(self, tree_sequence):
+        if not self.pi_needed():
+            return
+
+        mpd = allel.mean_pairwise_difference(
+            allel.HaplotypeArray(
+                tree_sequence.genotype_matrix()
+            ).count_alleles())
+        self.writers['pi'].write(
+            f'{mpd.sum()/tree_sequence.get_sequence_length()}')
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None

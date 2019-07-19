@@ -37,6 +37,7 @@ def compare_options(options, nondefault={}):
                 'popfile_file': None,
                 'f4dstat_file': None,
                 'option_file': None,
+                'pi_file': None,
                 'default_options': None,
                 'out_dir': None,
                 'split_population_proportion': 0.1,
@@ -75,6 +76,8 @@ def test_single_changes(parser):
     compare_options(options, {'haplo_file': '*'})
     options = parser.parse_args(['--options'])
     compare_options(options, {'option_file': '*'})
+    options = parser.parse_args(['--pi'])
+    compare_options(options, {'pi_file': '*'})
 
     options = parser.parse_args(['--debug', 'test debug'])
     compare_options(options, {'debug_file': 'test debug'})
@@ -88,6 +91,8 @@ def test_single_changes(parser):
     compare_options(options, {'option_file': 'test option'})
     options = parser.parse_args(['--out-dir', 'test dir'])
     compare_options(options, {'out_dir': 'test dir'})
+    options = parser.parse_args(['--pi', 'pie'])
+    compare_options(options, {'pi_file': 'pie'})
 
     options = parser.parse_args(['-l', '1e7'])
     compare_options(options, {'length': 1e7})

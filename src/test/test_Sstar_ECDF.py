@@ -523,7 +523,11 @@ def null_db():
 
 
 def test_null_db_init(null_db):
-    ase(null_db.DB, pd.Series(dtype='int64'))
+    ase(null_db.DB, pd.Series(dtype='int64',
+                              index=pd.MultiIndex.from_tuples(
+                                  [],
+                                  names=['pop', 'n_region_ind_snps',
+                                         's_star'])))
 
 
 def test_null_db_read_windowcalc(null_db):
@@ -585,6 +589,8 @@ def test_null_db_combine(null_db):
         ''
     )
     null_db.read_windowcalc(infile)
+    print(null_db.DB)
+    print(null_db.DB.index)
 
     index = pd.MultiIndex.from_tuples([
         ('ASN', 162, 25212),

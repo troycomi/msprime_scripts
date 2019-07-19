@@ -176,6 +176,15 @@ class admixture_option_parser(ArgumentParser):
                                "is given will output to stdout. If not "
                                "flagged, output will be suppressed.")
 
+        self.add_argument("--pi",
+                          dest="pi_file",
+                          nargs='?',
+                          const='*',
+                          default=None,
+                          help="Pi statistic filename.  If no argument "
+                               "is given will output to stdout. If not "
+                               "flagged, output will be suppressed.")
+
         # if these are set a filename must be provided as
         # multiple outputs are generated
         self.add_argument("--vcf",

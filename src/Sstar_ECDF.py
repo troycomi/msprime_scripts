@@ -204,7 +204,10 @@ def filter_by_sstar(window, null_db, sstar_pval) -> pd.DataFrame:
 
 class Null_DB():
     def __init__(self):
-        self.DB = pd.Series(dtype='int64')
+        self.DB = pd.Series(dtype='int64',
+                            index=pd.MultiIndex.from_tuples(
+                                [],
+                                names=['pop', 'n_region_ind_snps', 's_star']))
 
     def read_windowcalc(self, filename):
         '''

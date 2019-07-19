@@ -20,6 +20,7 @@ def main():
 
             printer.print_popfile(model, tree_sequence)
             printer.print_vcf(tree_sequence)
+            printer.print_pi(tree_sequence)
 
             if printer.haplo_needed():
                 haplotype_entry_list = get_haplo_entries(tree_sequence,
