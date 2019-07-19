@@ -307,22 +307,32 @@ class file_printer(object):
         writer = self.writers['pi']
         # invert populations dictionary to be keyed by population index
         # this keeps the order consistent instead of relying on keys
-        populations = {v: k for k, v in populations.items()}
 
-        pops = [populations[i] for i in range(len(populations))]
+        pops = 'AF EU AS'.split()
         indices = np.array(indices)
 
-        writer.write('\t'.join(pops) + '\n')
+        writer.write('\t'.join(pops) + '\t')
+        writer.write('AF-EU\tAF-AS\tEU-AS\n')
 
         length = tree_sequence.get_sequence_length()
         haplotypes = tree_sequence.genotype_matrix()
-        for pop in range(len(pops)):
+        for pop in pops:
             mpd = allel.mean_pairwise_difference(
                 allel.HaplotypeArray(
-                    haplotypes[:, indices == pop]
+                    haplotypes[:, indices == populations[pop]]
                 ).count_alleles())
             writer.write(
                 f'{mpd.sum()/length:.5}\t')
+
+        for pairs in (('AF', 'EU'), ('AF', 'AS'), ('EU', 'AS')):
+            count1 = allel.HaplotypeArray(
+                haplotypes[:, indices == populations[pairs[0]]]
+            ).count_alleles()
+            count2 = allel.HaplotypeArray(
+                haplotypes[:, indices == populations[pairs[1]]]
+            ).count_alleles()
+            num, den = allel.hudson_fst(count1, count2)
+            writer.write(f'{num.sum() / den.sum():.5}\t')
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None

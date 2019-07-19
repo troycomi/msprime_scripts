@@ -497,10 +497,11 @@ def test_print_pi():
         fp.print_pi(ts, model.get_sample_indices(),
                     model.get_population_map())
 
+        print(output.getvalue())
         lines = output.getvalue().split('\n')
-        assert lines[0].split() == 'N1 N2 AF EU AS CH DE'.split()
-        assert lines[1].split()[0] == '5.3e-05'
-        assert lines[1].split()[1] == '7.5e-05'
+        assert lines[0].split() == 'AF EU AS AF-EU AF-AS EU-AS'.split()
+        assert lines[1].split()[0] == '0.000433'
+        assert lines[1].split()[4] == '0.40093'
 
 
 def test_print_ils():
