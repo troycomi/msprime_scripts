@@ -3,6 +3,7 @@ import gzip
 import os.path
 from Option_Parser import admixture_option_parser
 import allel
+import numpy as np
 
 
 def get_basename(file):
@@ -299,16 +300,29 @@ class file_printer(object):
     def pi_needed(self):
         return self.writers['pi'] is not None
 
-    def print_pi(self, tree_sequence):
+    def print_pi(self, tree_sequence, indices, populations):
         if not self.pi_needed():
             return
 
-        mpd = allel.mean_pairwise_difference(
-            allel.HaplotypeArray(
-                tree_sequence.genotype_matrix()
-            ).count_alleles())
-        self.writers['pi'].write(
-            f'{mpd.sum()/tree_sequence.get_sequence_length()}')
+        writer = self.writers['pi']
+        # invert populations dictionary to be keyed by population index
+        # this keeps the order consistent instead of relying on keys
+        populations = {v: k for k, v in populations.items()}
+
+        pops = [populations[i] for i in range(len(populations))]
+        indices = np.array(indices)
+
+        writer.write('\t'.join(pops) + '\n')
+
+        length = tree_sequence.get_sequence_length()
+        haplotypes = tree_sequence.genotype_matrix()
+        for pop in range(len(pops)):
+            mpd = allel.mean_pairwise_difference(
+                allel.HaplotypeArray(
+                    haplotypes[:, indices == pop]
+                ).count_alleles())
+            writer.write(
+                f'{mpd.sum()/length:.5}\t')
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None

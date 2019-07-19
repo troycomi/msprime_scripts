@@ -18,6 +18,9 @@ class Population(object):
         self.generations = generations
         self.long_name = long_name
 
+    def get_indices(self, index):
+        return [index] * self.samples
+
     def get_sample(self, index):
         return [msprime.Sample(
             population=index,
@@ -379,6 +382,12 @@ class Base_demography(object):
         result = []
         for i, p in enumerate(self.populations):
             result += p.get_sample(i)
+        return result
+
+    def get_sample_indices(self):
+        result = []
+        for i, p in enumerate(self.populations):
+            result += p.get_indices(i)
         return result
 
     def get_initial_migrations(self):

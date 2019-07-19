@@ -13,7 +13,7 @@ dependencies:
   - async-timeout=3.0.1=py_1000
   - atomicwrites=1.2.1=py_0
   - attrs=18.2.0=py_0
-  - bcftools=1.9=h4da6232_0
+  - bcftools=1.9
   - bcolz=1.2.1=py36h637b7d7_1001
   - bcrypt=3.1.4=py36h470a237_0
   - bedtools=2.27.1=he941832_2

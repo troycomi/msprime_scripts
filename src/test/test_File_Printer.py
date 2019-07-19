@@ -490,13 +490,17 @@ def test_print_pi():
     opts = admixture_option_parser().parse_args([])
     with file_printer(opts) as fp:
         # when writer is still none
-        fp.print_pi(None)
+        fp.print_pi(None, None, None)
         model = Demography_Models.Base_demography(opts)
         ts = next(model.simulate(1))
         fp.writers['pi'] = output
-        fp.print_pi(ts)
+        fp.print_pi(ts, model.get_sample_indices(),
+                    model.get_population_map())
 
-        assert float(output.getvalue()) == pytest.approx(3.07524e-4, 0.1)
+        lines = output.getvalue().split('\n')
+        assert lines[0].split() == 'N1 N2 AF EU AS CH DE'.split()
+        assert lines[1].split()[0] == '5.3e-05'
+        assert lines[1].split()[1] == '7.5e-05'
 
 
 def test_print_ils():
