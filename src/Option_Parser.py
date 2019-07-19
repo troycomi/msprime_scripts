@@ -99,6 +99,20 @@ class admixture_option_parser(ArgumentParser):
                           default=2,
                           help="Set AF haploid sample size ; default=2")
 
+        self.add_argument("--split-population-size",
+                          type=int,
+                          dest="split_population_size",
+                          default=100,
+                          help="Set split population size in SplitPop model; "
+                               "default=100")
+
+        self.add_argument("--split-population-proportion",
+                          type=float,
+                          dest="split_population_proportion",
+                          default=0.1,
+                          help="Set split population proportion in SplitPop "
+                               "model; default=0.1")
+
         self.add_argument("-g", "--initial-migration",
                           dest="initial_migrations",
                           action='append',
