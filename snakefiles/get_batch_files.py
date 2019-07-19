@@ -33,10 +33,11 @@ class group_rule_output:
                 for i in range(len(self.files))]
 
 
-def get_batch_files(group_inputs, batch_size):
+def get_batch_files(group_inputs, batch_default, **batches):
     '''
     group_inputs: list of group_rule_input objects
-    batch_size: number of files to group together
+    batch_default: number of files to group together
+    batches: keyword arguments of group_name: batch_size to override default
     returns dict of group_rule_outputs keyed on input.key
     '''
     result = {}
@@ -44,7 +45,11 @@ def get_batch_files(group_inputs, batch_size):
         output = group_rule_output(group_input.temp_file,
                                    group_input.group_name)
 
-        output.files = group_input.batch_files(batch_size)
+        if group_input.key_name in batches:
+            output.files = group_input.batch_files(
+                batches[group_input.key_name])
+        else:
+            output.files = group_input.batch_files(batch_default)
 
         result[group_input.key_name] = output
 

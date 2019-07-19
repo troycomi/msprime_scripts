@@ -7,11 +7,10 @@ __default__:
     "qos": '1day'
 
 vcf_to_sstar:
-    "n": 1
-    "memory": '2G'
-    "time": '2-0'
+    "n": 10
+    "memory": '10G'
+    "time": '0-4'
     "jobname": 'vcf-to-sstar'
-    "qos": '1wk'
 
 generate_bed:
     "jobname": 'generate-bed'
@@ -20,6 +19,9 @@ combine_introgressed_regions:
     "jobname": 'combine-introgressed-regions'
 
 null_match:
+    "n": 10
+    "time": '0-4'
+    "memory": "10G"
     "jobname": 'null-match'
 
 build_db:
@@ -27,26 +29,26 @@ build_db:
 
 generate_ecdf:
     "n": 1
-    "memory": '10G'
+    "memory": '5G'
     "jobname": 'generate-ecdf'
-    "time": '5-0'
-    "qos": '1wk'
+    "time": '0-12'
 
 join_ecdf:
     "memory": '15G'
     "jobname": 'join-ecdf'
     "time": '14-0'
-    "qos":  'long'
+    "qos": 'long'
 
 match_pvalue:
     "jobname": 'match-pvalue'
-    "time": '2-0'
-    "qos": '1wk'
-    "memory": '2G'
+    "n": 10
+    "time": '0-4'
+    "memory": "10G"
 
 ecdf_bed:
-    "n": 1
-    "memory": '10G'
+    "n": 10
+    "time": '0-4'
+    "memory": '25G'
     "jobname": 'ecdf-bed'
 
 desert:
@@ -58,6 +60,9 @@ desert:
 
 merge_split:
     "jobname": 'merge-split'
+    "time": '0-1'
+    "qos": '1hr'
+    "memory": '1G'
 
 calc_admix:
     "jobname": 'calc-admix'

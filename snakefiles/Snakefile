@@ -104,7 +104,9 @@ group_inputs.append(
         temp_file=paths['ecdf_bed_batch'],
         group_name='ecdf_bed'))
 
-group_outputs = get_batch_files(group_inputs, batch)
+# get batched outputs, merge_split is fast and can take more samples
+group_outputs = get_batch_files(group_inputs, batch,
+                                merge_split=batch*10)
 
 def all_input(wildcards):
     result = ancient(expand(paths['options'],
@@ -452,7 +454,7 @@ checkpoint split_ecdf:
     shell:
         'mkdir {output}\n'
         'split '
-            '--lines={batch} '
+            '--lines={batch//10} '
 #            '--additional-suffix={params.splitnames[suffix]} '
             '{input[0]} {params.splitnames[prefix]}'
 
