@@ -333,6 +333,7 @@ class file_printer(object):
             ).count_alleles()
             num, den = allel.hudson_fst(count1, count2)
             writer.write(f'{num.sum() / den.sum():.5}\t')
+        writer.write('\n')
 
     def haplo_needed(self):
         return self.writers['haplo'] is not None

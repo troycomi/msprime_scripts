@@ -1,0 +1,14 @@
+---
+cluster-config: cluster.yaml
+cluster: "sbatch --cpus-per-task={cluster.n} --mem={cluster.memory} \
+          --time={cluster.time} --output=slurm_out/%x_%A \
+          --job-name={cluster.jobname} --parsable"
+
+use-conda: true
+max-jobs-per-second: 1
+local-cores: 1
+latency-wait: 60
+jobs: 50
+directory: "/home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles"
+nolock: false
+quiet: true

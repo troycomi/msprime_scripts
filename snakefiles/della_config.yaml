@@ -7,8 +7,9 @@ paths:
                    vcftools-v0.1.15/bin/vcftools"
     bedops: "/tigress/AKEY/akey_vol1/software/bedops/bin"
 
-    base_output: "/tigress/tcomi/abwolf_abc/{model}"
-    admixed_dir: "__BASE_OUTPUT__/n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    # note that the model is appended to this path
+    base_output: "/tigress/tcomi/abwolf_abc/"
+    admixed_dir: "__BASE_OUTPUT__/testing"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
 
@@ -32,7 +33,7 @@ paths:
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     split_chrom_dir: "__NULL_DIR__/split_db"
-    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
+    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}"
     split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
@@ -44,8 +45,12 @@ paths:
                          .match_sig_N_{matchpvalue}.isc_0.bed.merged_{population}.gz"
 
     sstar_out: "__ADMIXED_DIR__/admixture_Sstar.txt"
+    pi: "__ADMIXED_DIR__/vcfs/pi_{seed}.txt"
+    pi_joined: "__ADMIXED_DIR__/pi.txt"
     desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.prop_blw_thrhld"
+    empirical_windows: "/tigress/tcomi/abwolf_abc/Sriram/window.txt"
+    summary: "__ADMIXED_DIR__/summary.txt"
 
     # batch temp files
     vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
@@ -61,13 +66,13 @@ msprime:
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
     model: "Sriram"
-    length: 1000000
+    length: 10000000
     n1: 0.1
     n2: 0.0
     EUR: 1006
     ASN: 1008
 
-    batch_size: 5
+    batch_size: 10
 
     null_simulations: 10
     null_params: "-n 0.0 -d 0.0 \

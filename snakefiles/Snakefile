@@ -26,7 +26,7 @@ msprime_base_params = (config['msprime']['base_params']
 model = config['msprime']['model']
 
 paths = config['paths']
-paths['base_output'] = paths['base_output'].format(model=model)
+paths['base_output'] += model  # append model to base output
 
 dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
@@ -39,7 +39,8 @@ localrules:
     generate_popfile,
     generate_options,
     haplotype_to_sample,
-    split_ecdf
+    split_ecdf,
+    summary_statistics
 
 batch = config['msprime']['batch_size']
 group_inputs = []
@@ -113,8 +114,10 @@ def all_input(wildcards):
                      directory=dirs.values()))
     result.append(ancient(paths['config_copy']))
     result.append(ancient(paths['sstar_out']))
+    result.append(ancient(paths['pi_joined']))
     if config['msprime']['length'] >= 5000000:
         result.append(ancient(paths['below_thresh']))
+    result.append(ancient(paths['summary']))
 
     return result
 
@@ -131,6 +134,11 @@ for out in group_outputs.values():
             shell: 'touch {output}'
 
 
+def format_path(p, wild):
+    if '{seed,\\d+}' in p:
+        p = p.replace('{seed,\\d+}', '{seed}')
+    return p.format(directory=wild.directory, seed=wild.seed)
+
 rule config_copy:
     output:
         paths['config_copy']
@@ -140,11 +148,14 @@ rule config_copy:
         with open(output[0], 'w') as conf:
             yaml.dump(config, conf, default_flow_style=False)
 
-def get_params(wildcards):
+def get_params(wildcards, output):
     if wildcards.directory == 'null':
         return config['msprime']['null_params']
     else:
-        return config['msprime']['admixed_params']
+        result = config['msprime']['admixed_params']
+        if output[0].endswith('.vcf.gz'):  # generate stats
+            result += ' --pi ' + paths['pi'].format(seed=wildcards.seed)
+        return result
 
 rule generate_bed:
     output:
@@ -209,45 +220,65 @@ rule generate_vcf:
             '--vcf {output} '
             '{params}'
 
+def check_vcf(wildcards):
+    
+    if os.path.exists(format_path(paths['mod_vcf'], wildcards)) or \
+        (os.path.exists(format_path(paths['null_db'], wildcards)) and \
+         os.path.exists(format_path(paths['pvalue_table'], wildcards))):
+        return ''
+
+    else:
+        return format_path(paths['raw_vcf'], wildcards)
+
+        
 rule process_vcf:
-    input: ancient(rules.generate_vcf.output)
+    input: check_vcf
 
     output:
         mod=temp(paths['mod_vcf']),
         arch=temp(paths['arch_vcf']),
         mod_tbi=temp(paths['mod_tbi']),
         arch_tbi=temp(paths['arch_tbi'])
-#        mod=paths['mod_vcf'],
-#        arch=paths['arch_vcf'],
-#        mod_tbi=paths['mod_tbi'],
-#        arch_tbi=paths['arch_tbi']
 
     group: 'vcf_to_sstar'
 
     shell:
-#        "module load samtools \n"
-        #"which tabix \n"
-        "set -x \n"
+        "if [[ {paths[sstar_dir]} == /Genomics* ]]; then \n"
+            "vcftools=vcftools\n"
+        "else \n"
+            "module load samtools \n"
+            "vcftools={paths[vcftools_bin]}\n"
+        "fi\n"
         "zcat {input} | "
             "awk 'BEGIN {{OFS=\"\\t\"}} /^#/{{print$0}} "
                 "!/^#/{{$1=\"'{wildcards.seed}'\" ; print $0}}' | "
             "bgzip -c > {output.mod} \n"
         "tabix -fp vcf {output.mod} \n"
-        #"{paths[vcftools_bin]} --gzvcf {output.mod} "
-        "vcftools --gzvcf {output.mod} "
+        "$vcftools --gzvcf {output.mod} "
             "--keep {paths[sstar_dir]}/bin/vcf_keep_archaic.txt "
-            #"--recode --stdout 2>/dev/null | "
-            "--recode --stdout | "
+            "--recode --stdout 2>/dev/null | "
+            #"--recode --stdout | "
             "bgzip -c > {output.arch} \n"
         "tabix -fp vcf {output.arch}"
 
+# override ancient behaviour to handle case of temp file being recreated
+def check_sstar(wildcards):
+    if os.path.exists(paths['window_calc'].format(
+        directory=wildcards.directory,
+        seed=wildcards.seed)):
+        return ''
+    else:
+        return {
+            'pop': paths['popfile'],
+            'mod': format_path(paths['mod_vcf'], wildcards),
+            'arch': format_path(paths['arch_vcf'], wildcards),
+            'mod_tbi': format_path(paths['mod_tbi'], wildcards),
+            'arch_tbi': format_path(paths['arch_tbi'], wildcards)
+        }
+
 rule sstar_window:
     input:
-        pop=ancient(rules.generate_popfile.output),
-        mod=ancient(rules.process_vcf.output.mod),
-        mod_tbi=ancient(rules.process_vcf.output.mod_tbi),
-        arch_tbi=ancient(rules.process_vcf.output.arch_tbi),
-        arch=ancient(rules.process_vcf.output.arch)
+        check_sstar
 
     output:
         paths['window_calc']
@@ -280,6 +311,26 @@ rule sstar_window:
             "2>/dev/null "
             "| gzip -c - > {output}\n"
 
+rule merge_pi:
+    input:
+        ancient(expand(paths['raw_vcf'].replace('{seed,\\d+}', '{seed}'),
+               seed=admixed_seeds,
+               directory=dirs['admixed'])),
+        temp_files=ancient(group_outputs['admixed_vcf'].get_temp_files()),
+    output:
+        paths['pi_joined']
+
+    params:
+        pi=paths['pi'].format(seed='[0-9]\\+')
+
+    shell:
+        'find {paths[admixed_dir]} -regextype sed -regex \'{params.pi}\' | '
+        'xargs cat | '
+        'awk \'NR == 1 {{print $0}} '
+        'NR % 2 == 0 {{for(i = 1; i <=  NF; i++) sums[i] += $i; count++;}} '
+        'END {{for(i = 1; i <= length(sums); i++) printf "%e\\t", sums[i]/count; printf "\\n";}}\' '
+        '> {output} \n'
+        'find {paths[admixed_dir]} -regextype sed -regex \'{params.pi}\' -delete'
 
 rule generate_options:
     output:
@@ -449,13 +500,13 @@ checkpoint split_ecdf:
         directory(paths['split_chrom_dir'])
 
     params:
-        splitnames=get_split_names
+        splitnames=get_split_names,
+        batch_size=batch//10
 
     shell:
         'mkdir {output}\n'
         'split '
-            '--lines={batch//10} '
-#            '--additional-suffix={params.splitnames[suffix]} '
+            '--lines={params.batch_size} '
             '{input[0]} {params.splitnames[prefix]}'
 
 rule generate_ecdf:
@@ -721,3 +772,24 @@ rule significant_windows:
             '{config[window_thresh]} '
             '{input.chroms} '
             '> {output}'
+
+rule summary_statistics:
+    input:
+        pi=ancient(paths['pi_joined']),
+        simulated=ancient(paths['below_thresh']),
+        empirical=ancient(paths['empirical_windows']),
+        admixed=ancient(paths['sstar_out']),
+
+    output:
+        paths['summary']
+
+    conda:
+        '../msprime.yml'
+
+    shell:
+        'python summarize.py '
+            '--pi {input.pi} '
+            '--admixed {input.admixed} '
+            '--simulated {input.simulated} '
+            '--observed {input.empirical} '
+            '--output {output} '

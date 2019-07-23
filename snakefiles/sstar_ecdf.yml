@@ -38,7 +38,7 @@ dependencies:
   - libssh2=1.8.0=h1ba5d50_4
   - libstdcxx-ng=8.2.0=hdf63c60_1
   - libtiff=4.0.9=he85c1e1_2
-  - libuuid=1.0.3=1
+  - libuuid=1.0.3
   - libxcb=1.13=h14c3975_1002
   - libxml2=2.9.9=he19cac6_0
   - make=4.2.1=h14c3975_2004
@@ -78,7 +78,7 @@ dependencies:
   - r-munsell=0.5.0=r351h6115d3f_1001
   - r-nlme=3.1_140=r351h9bbef5b_0
   - r-optparse=1.6.1=r351h6115d3f_0
-  - r-pillar=1.4.0=h6115d3f_0
+  - r-pillar
   - r-pkgconfig=2.0.2=r351h6115d3f_1001
   - r-plogr=0.2.0=r351h6115d3f_1001
   - r-plyr=1.8.4=r351h29659fb_1002

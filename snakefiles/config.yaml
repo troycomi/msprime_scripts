@@ -25,7 +25,6 @@ paths:
 #    null_db: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/Sriram/null/v_02192019/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     split_chrom_dir: "__NULL_DIR__/split_db"
-#    split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}.chr_list"
     split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}"
     split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
@@ -39,9 +38,13 @@ paths:
                          .isc_0.bed.merged_{population}.gz"
 
     sstar_out: "__ADMIXED_DIR__/admixture_Sstar.txt"
+    pi: "__ADMIXED_DIR__/vcfs/pi_{seed}.txt"
+    pi_joined: "__ADMIXED_DIR__/pi.txt"
     desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb.gz"
     desert_windows_unzip: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb.prop_blw_thrhld"
+    empirical_windows: "/Genomics/grid/users/abwolf/NeanderthalSeq/bin/Count_windows_blw_thrhld_EUREAS.txt"
+    summary: "__ADMIXED_DIR__/summary.txt"
 
     # batch temp files
     vcf_batch: "__BASE_OUTPUT__/{directory}/vcfs/{id}.temp"
@@ -63,6 +66,7 @@ msprime:
     base_params: "-r 216"
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
+    # Any duplicates with null params are overwritten (e.g. n1/n2)
     # "Tenn"
     # "Sriram"
     # "SplitPop"

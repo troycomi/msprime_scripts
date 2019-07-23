@@ -14,7 +14,7 @@ do
     # due to limits in --configfile flag, can't use multiple files
     echo '---
 paths:
-    admixed_dir: "__BASE_OUTPUT/n1_'${N1}'_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    admixed_dir: "__BASE_OUTPUT__/n1_'${N1}'_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
 
 msprime:
     n1: '$N1'' > tempconfig.yaml

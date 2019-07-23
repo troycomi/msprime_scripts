@@ -21,8 +21,8 @@ def main():
             printer.print_popfile(model, tree_sequence)
             printer.print_vcf(tree_sequence)
             printer.print_pi(tree_sequence,
-                             simulation.get_sample_indices(),
-                             simulation.get_population_map())
+                             model.get_sample_indices(),
+                             model.get_population_map())
 
             if printer.haplo_needed():
                 haplotype_entry_list = get_haplo_entries(tree_sequence,

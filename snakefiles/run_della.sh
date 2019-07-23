@@ -1,8 +1,6 @@
 #!/bin/bash
 
-module load anaconda3
 conda activate msprime_scripts
-PATH=$PATH:/usr/licensed/anaconda3/2019.3/bin
 
 set -euo pipefail
 
@@ -24,7 +22,7 @@ snakemake --cluster-config della_cluster.yaml \
     --use-conda \
     -pr \
     -w 60 -j 50 \
-    --jobscript jobtemplate.sh \
     --configfile della_config.yaml
     #-R $(snakemake --list-input-changes) \
     #--rerun-incomplete
+    #--jobscript jobtemplate.sh \
