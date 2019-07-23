@@ -8,6 +8,7 @@ base_output = '/tigress/tcomi/abwolf_abc/'
 @click.option('-b', '--base', default="",
               help='Root directory to store temporary output')
 def main(base):
+    # TODO eithe generate null as a separate option or add it in
     if base:
         global base_output
         base_output = base
@@ -23,7 +24,6 @@ def main(base):
         'batch_index': 1,
         'submission_index': 2}))
     # bolfi = elfi.BOLFI()
-    pass
 
 
 command = 'snakemake --profile elfi_profile --configfile {config_file}'
@@ -50,8 +50,7 @@ msprime:
 ''')
 
     kwinputs['config_file'] = yml_file
-    kwinputs['output_file'] = '/tigress/tcomi/abwolf_abc/Sriram/testing/summary.txt'
-    # kwinputs['output_file'] = f'{base_output}/summary.txt'
+    kwinputs['output_file'] = f'{base_output}/summary.txt'
 
     return inputs, kwinputs
 

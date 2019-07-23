@@ -15,7 +15,7 @@ module load anaconda3
 ```
 The conda environment is then created with:
 ```
-conda create -n msprime_scripts --file environment.txt
+conda create -n msprime_scripts --file msprime.yml
 ```
 
 ## Usage
@@ -53,15 +53,6 @@ Slurm jobs are submitted using the corresponding submit script within the
 slurmJobs directory.  The behavior of the submission is customized within
 the submit script which performs some basic operations before submitting
 the slurm array job.
-
-### Seff Examination
-The reportSeff and formatSeff scripts can be used to automatically
-view seff information from the slurmout files.  From the snakemake directory
-```
-./reportSeff.sh slurm_out/ | python formatSeff.py
-```
-Depending on the size of the output, pipe through less or write to an output
-file.
 
 ### Snakemake
 A snakemake workflow is available for performing numerous simulations and 
