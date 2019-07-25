@@ -263,7 +263,7 @@ def check_sstar(wildcards):
     if os.path.exists(paths['window_calc'].format(
         directory=wildcards.directory,
         seed=wildcards.seed)):
-        return ''
+        return []
     else:
         return {
             'pop': paths['popfile'],

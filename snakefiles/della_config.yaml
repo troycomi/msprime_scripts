@@ -80,7 +80,7 @@ msprime:
                   -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                   -G AF_B_0 -G B_AF_0"
 
-    admixed_simulations: 10
+    admixed_simulations: 5
     admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
                       -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
                       -G AF_B_0 -G B_AF_0"

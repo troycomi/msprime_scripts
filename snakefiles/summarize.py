@@ -37,7 +37,6 @@ def main(observed, simulated, pi, admixed, output):
     if admixed:
         for line in admixed:
             tokens = line.split()
-            print(tokens)
             # remove trailing ':' on key
             outputs[f'admix-{tokens[0][:-1]}'] = tokens[1]
 

@@ -4,12 +4,12 @@ cluster-config: /home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles/della
 snakefile: /home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles/Snakefile
 cluster: "sbatch --cpus-per-task={cluster.n} --mem={cluster.memory} \
           --time={cluster.time} --output=slurm_out/%x_%A \
-          --job-name={cluster.jobname} --parsable"
+          --job-name={cluster.jobname} --parsable -A eeb"
 
 use-conda: true
 max-jobs-per-second: 1
 local-cores: 1
 latency-wait: 60
 jobs: 50
-nolock: false
-quiet: false
+nolock: true
+quiet: true
