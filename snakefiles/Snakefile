@@ -16,8 +16,6 @@ admixed_seeds = random.sample(range(1, 1<<31),
                               config['msprime']['admixed_simulations'])
 
 msprime_base_params = (config['msprime']['base_params']
-                + " -n {}".format(config['msprime']['n1'])
-                + " -d {}".format(config['msprime']['n2'])
                 + " -m {}".format(config['msprime']['model'])
                 + " -l {}".format(config['msprime']['length'])
                 + " -e {}".format(config['msprime']['EUR'])
@@ -131,6 +129,12 @@ for out in group_outputs.values():
             shell: 'touch {output}'
 
 
+rule null:
+    input:
+        paths['null_db'],
+        paths['ecdf_data'],
+        paths['options'].format(directory=dirs['null'])
+
 def format_path(p, wild):
     if '{seed,\\d+}' in p:
         p = p.replace('{seed,\\d+}', '{seed}')
@@ -152,6 +156,12 @@ def get_params(wildcards, output):
         result = config['msprime']['admixed_params']
         if output[0].endswith('.vcf.gz'):  # generate stats
             result += ' --pi ' + paths['pi'].format(seed=wildcards.seed)
+        result += (" -n {}".format(config['msprime']['n1'])
+                 + " -d {}".format(config['msprime']['n2'])
+                 + " --split-population-size {}".format(
+                    config['msprime']['split_population_size'])
+                 + " --split-population-proportion {}".format(
+                    config['msprime']['split_population_proportion']))
         return result
 
 rule generate_bed:
@@ -173,7 +183,7 @@ rule generate_bed:
 
 rule generate_chr_list:
     output:
-        paths['chr_list']
+        temp(paths['chr_list'])
 
     run:
         if wildcards.directory == 'null':
@@ -200,7 +210,6 @@ rule generate_popfile:
 rule generate_vcf:
     output:
         temp(paths['raw_vcf'])
-#        paths['raw_vcf']
 
     params:
         get_params
@@ -222,7 +231,7 @@ def check_vcf(wildcards):
     if os.path.exists(format_path(paths['mod_vcf'], wildcards)) or \
         (os.path.exists(format_path(paths['null_db'], wildcards)) and \
          os.path.exists(format_path(paths['pvalue_table'], wildcards))):
-        return ''
+        return []
 
     else:
         return format_path(paths['raw_vcf'], wildcards)
@@ -278,7 +287,7 @@ rule sstar_window:
         unpack(check_sstar)
 
     output:
-        paths['window_calc']
+        temp(paths['window_calc'])
 
     group: 'vcf_to_sstar'
 
@@ -315,7 +324,7 @@ rule merge_pi:
                directory=dirs['admixed'])),
         temp_files=ancient(group_outputs['admixed_vcf'].get_temp_files()),
     output:
-        paths['pi_joined']
+        temp(paths['pi_joined'])
 
     params:
         pi=paths['pi'].format(seed='[0-9]\\+')
@@ -423,7 +432,7 @@ rule combine_introgressed_regions:
         sample_map=ancient(rules.haplotype_to_sample.output)
 
     output:
-        paths['combined_bed']
+        temp(paths['combined_bed'])
 
     params:
         input_glob=lambda wildcards: paths['bedfile'].format(seed="*",
@@ -446,11 +455,10 @@ rule match_pct_pvalue:
         vcf_tbi=ancient(rules.process_vcf.output.mod_tbi),
         pop=ancient(rules.generate_popfile.output),
         match_db=ancient(rules.build_db.output),
-#        match_db=paths['null_db'],
         #overlap=paths['combined_bed']
 
     output:
-        paths['pvalue_table']
+        temp(paths['pvalue_table'])
 
     params:
         archaic=" ".join(config['match_pct']['archaic']),
@@ -498,7 +506,9 @@ checkpoint split_ecdf:
 
     params:
         splitnames=get_split_names,
-        batch_size=batch//10
+        batch_size=batch
+        # TODO use the //10 for larger samples, change all della to gen (configs, profiles)
+        #batch_size=batch//10
 
     shell:
         'mkdir {output}\n'
@@ -506,9 +516,23 @@ checkpoint split_ecdf:
             '--lines={params.batch_size} '
             '{input[0]} {params.splitnames[prefix]}'
 
+def generate_ecdf_input(wildcards):
+    split_chrom = paths['split_chrom'].format(part=wildcards.part)
+    windows = []
+    with open(split_chrom, 'r') as reader:
+        for line in reader:
+            windows.append(paths['window_calc'].format(
+                directory=dirs['null'],
+                seed=line.strip()
+                ))
+
+    return {'chrom_list': split_chrom,
+            'windows': windows,
+            'temp_files': group_outputs['null_vcf'].get_temp_files()}
+
 rule generate_ecdf:
     input:
-        paths['split_chrom']
+        unpack(generate_ecdf_input)
 
     output:
         temp(paths['split_null_db'])
@@ -524,7 +548,7 @@ rule generate_ecdf:
         'python ../src/Sstar_ECDF.py '
             'build-null-db '
             '--region-dir {params.region_dir} '
-            '--chr-list {input[0]} '
+            '--chr-list {input.chrom_list} '
             '--outfile {output} '
 
 def aggregate_ecdf_input(wildcards):
@@ -571,9 +595,9 @@ rule ecdf_bed:
         temp_files2=ancient(group_outputs['match_pvalue'].get_temp_files()),
 
     output:
-        paths['ecdf_bed_files']\
+        temp(paths['ecdf_bed_files']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']))
 
     params:
         region_dir=os.path.dirname(paths['window_calc']).format(
@@ -607,9 +631,9 @@ rule merge_bed:
         ancient(group_outputs['ecdf_bed'].get_temp_files())
 
     output:
-        paths['ecdf_bed_merge']\
+        temp(paths['ecdf_bed_merge']\
             .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue']))
 
     group: "merge_split"
 

@@ -286,6 +286,7 @@ class file_printer(object):
     def single_simulation_needed(self):
         return self.writers['vcf'] is not None or \
             self.writers['popfile'] is not None or \
+            self.pi_needed() or \
             self.haplo_needed() or \
             self.ils_needed()
 

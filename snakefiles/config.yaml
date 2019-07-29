@@ -75,23 +75,22 @@ msprime:
     # "Tenn_pulsed"
     model: "SplitPop"
     length: 10000000
-    n1: 0.03
-    n2: 0.0
+    # n1: 0.03
+    # n2: 0.0
+    # split_population_proportion: 0.0
+    # split_population_size: 0
     EUR: 1006
     ASN: 1008
 
     batch_size: 100
 
     null_simulations: 2000
-    null_params: " -n 0.0 -d 0.0 \
-                   -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
-                   -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                   -G AF_B_0 -G B_AF_0"
+    null_params: "-n 0.0 -d 0.0 \
+                  --split-population-proportion 0.0 \
+                  --split-population-size 1"
 
     admixed_simulations: 1000
-    admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
-                      -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                      -G AF_B_0 -G B_AF_0"
+    admixed_params: " "
 
 s_star:
     window_size: "50000"

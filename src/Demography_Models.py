@@ -1134,6 +1134,12 @@ class SplitPop_demography(Base_demography):
             result += p.get_sample(i)
         return result
 
+    def get_sample_indices(self):
+        result = []
+        for i, p in enumerate(self.populations[:-1]):
+            result += p.get_indices(i)
+        return result
+
     def set_demographic_events(self):
         ids = self.get_population_map()
         migrations = self.get_later_migrations()

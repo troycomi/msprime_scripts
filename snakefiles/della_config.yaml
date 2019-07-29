@@ -49,7 +49,7 @@ paths:
     pi_joined: "__ADMIXED_DIR__/pi.txt"
     desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to10_Mb.prop_blw_thrhld"
-    empirical_windows: "/tigress/tcomi/abwolf_abc/Sriram/window.txt"
+    empirical_windows: "/tigress/tcomi/abwolf_abc/window.txt"
     summary: "__ADMIXED_DIR__/summary.txt"
 
     # batch temp files
@@ -65,10 +65,12 @@ msprime:
     base_params: "-r 216"
     # while the following are added to base_params, they are needed
     # in other parts of the workflow as well
-    model: "Sriram"
+    model: "SplitPop"
     length: 10000000
-    n1: 0.1
-    n2: 0.0
+    # n1: 0.1
+    # n2: 0.0
+    # split_population_proportion: 0.0
+    # split_population_size: 0
     EUR: 1006
     ASN: 1008
 
@@ -76,14 +78,11 @@ msprime:
 
     null_simulations: 10
     null_params: "-n 0.0 -d 0.0 \
-                  -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
-                  -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                  -G AF_B_0 -G B_AF_0"
+                  --split-population-proportion 0.0 \
+                  --split-population-size 1"
 
     admixed_simulations: 5
-    admixed_params: " -g AF_EU_0 -g EU_AF_0 -g EU_AS_0 \
-                      -g AS_EU_0 -g AF_AS_0 -g AS_AF_0 \
-                      -G AF_B_0 -G B_AF_0"
+    admixed_params: " "
 
 s_star:
     window_size: "50000"

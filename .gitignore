@@ -3,3 +3,5 @@
 *.swp
 .snakemake
 run_*.out
+slurm_out/
+elfiABC/msprime_*.yaml
