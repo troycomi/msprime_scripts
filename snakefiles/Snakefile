@@ -211,14 +211,14 @@ rule process_vcf:
     input: ancient(rules.generate_vcf.output)
 
     output:
-        mod=temp(paths['mod_vcf']),
-        arch=temp(paths['arch_vcf']),
-        mod_tbi=temp(paths['mod_tbi']),
-        arch_tbi=temp(paths['arch_tbi'])
-#        mod=paths['mod_vcf'],
-#        arch=paths['arch_vcf'],
-#        mod_tbi=paths['mod_tbi'],
-#        arch_tbi=paths['arch_tbi']
+        # mod=temp(paths['mod_vcf']),
+        # arch=temp(paths['arch_vcf']),
+        # mod_tbi=temp(paths['mod_tbi']),
+        # arch_tbi=temp(paths['arch_tbi'])
+       mod=paths['mod_vcf'],
+       arch=paths['arch_vcf'],
+       mod_tbi=paths['mod_tbi'],
+       arch_tbi=paths['arch_tbi']
 
     group: 'vcf_to_sstar'
 

@@ -24,8 +24,9 @@ snakemake \
         --parsable" \
     --use-conda \
     -pr \
-    -w 60 -j 50 \
+    -w 60 -j 500 \
     --configfile config.yaml \
-    --rerun-incomplete
+    --rerun-incomplete \
+    --until process_vcf
 
 #snakemake --delete-temp-output
