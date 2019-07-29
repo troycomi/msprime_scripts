@@ -18,6 +18,9 @@ class Population(object):
         self.generations = generations
         self.long_name = long_name
 
+    def get_indices(self, index):
+        return [index] * self.samples
+
     def get_sample(self, index):
         return [msprime.Sample(
             population=index,
@@ -379,6 +382,12 @@ class Base_demography(object):
         result = []
         for i, p in enumerate(self.populations):
             result += p.get_sample(i)
+        return result
+
+    def get_sample_indices(self):
+        result = []
+        for i, p in enumerate(self.populations):
+            result += p.get_indices(i)
         return result
 
     def get_initial_migrations(self):
@@ -1050,10 +1059,16 @@ class Sriram_demography(Base_demography):
 
 
 class SplitPop_demography(Base_demography):
+    def __init__(self, options):
+        # add in new options for split population
+        self.N_SP = options.split_population_size
+        self.f_SP = options.split_population_proportion
+        # use all normal options
+        Base_demography.__init__(self, options)
+
     def set_constants(self):
         Base_demography.set_constants(self)
 
-        self.N_SP = 100
         # split population off of B
         self.T_SP = 54e3 / self.generation_time
 
@@ -1117,6 +1132,12 @@ class SplitPop_demography(Base_demography):
         result = []
         for i, p in enumerate(self.populations[:-1]):
             result += p.get_sample(i)
+        return result
+
+    def get_sample_indices(self):
+        result = []
+        for i, p in enumerate(self.populations[:-1]):
+            result += p.get_indices(i)
         return result
 
     def set_demographic_events(self):
@@ -1211,7 +1232,7 @@ class SplitPop_demography(Base_demography):
                 time=self.T_SP,
                 source=ids['B'],
                 destination=ids['SP'],
-                proportion=0.1),
+                proportion=self.f_SP),
 
             # SplitPop is set at size Ne=100
             msprime.PopulationParametersChange(
