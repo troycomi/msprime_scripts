@@ -17,6 +17,7 @@ snakemake --unlock --rerun-incomplete
 
 ##perform workflow.
 snakemake \
+    --nr \
     --cluster-config cluster.yaml \
     --cluster "sbatch --cpus-per-task={cluster.n} \
         --mem={cluster.memory} --time={cluster.time} --qos={cluster.qos} \
