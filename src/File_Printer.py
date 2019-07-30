@@ -319,24 +319,18 @@ class file_printer(object):
         haplotypes = tree_sequence.genotype_matrix()
 
 
-        g_AF = allel.HaplotypeArray(
-            haplotypes[:, indices == populations['AF']]
-        ).to_genotypes(ploidy=2)
-        g_EU = allel.HaplotypeArray(
-            haplotypes[:, indices == populations['EU']]
-        ).to_genotypes(ploidy=2)
-        g_AS = allel.HaplotypeArray(
-            haplotypes[:, indices == populations['AS']]
-        ).to_genotypes(ploidy=2)
+        ga_comb = allel.HaplotypeArray(
+                    haplotypes[:, indices == populations['AF']]
+                    ).to_genotypes(ploidy=2).concatenate(
+            [   allel.HaplotypeArray(
+                 haplotypes[:, indices == populations['EU']]
+             ).to_genotypes(ploidy=2),
+                allel.HaplotypeArray(
+                 haplotypes[:, indices == populations['AS']]
+             ).to_genotypes(ploidy=2)],
+            1)
 
-        ga_comb = g_AF.concatenate([g_EU], 1)
-        ga_comb = ga_comb.concatenate([g_AS],1)
-
-        ga_comb.n_samples
-
-        #print(haplotypes[:,indices == populations[pops]].shape)
-
-        #keep_alleles = allel.HaplotypeArray(haplotypes).count_alleles().is_biallelic_01(min_mac=int(0.05*()))
+        keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(ga_comb.n_samples)))
 
         # for pop in pops:
         #     mpd = allel.mean_pairwise_difference(
@@ -367,21 +361,21 @@ class file_printer(object):
 
             ## Create list of variants to keep with maf > 5%; list of TRUE/FALSE
             n_ga = ga.n_samples
-            keep_alleles = ga.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga)))
+            keep_alleles_pi = ga.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga)))
 
             ## Calculate mean_pairwise_difference for genotype array including
             ## variants with maf > 5%
             mpd = allel.mean_pairwise_difference(
-                ga[keep_alleles].count_alleles()
+                ga[keep_alleles_pi].count_alleles()
             )
 
             ## Create array listing indices of variants with maf > 5%
-            ar = np.where(keep_alleles)
+            #ar = np.where(keep_alleles_pi)
             ## Calculate pi on genotype array for variants with maf > 5%
-            pi = allel.sequence_diversity(np.arange(1,ar[0].shape[0]+1) ,ga[keep_alleles].count_alleles()) ## OKAY
+            #pi = allel.sequence_diversity(np.arange(1,ar[0].shape[0]+1) ,ga[keep_alleles_pi].count_alleles()) ## OKAY
 
             writer.write(
-                f'{mpd.sum()/ga[keep_alleles].n_variants:.5}\t') ## This is the same as pi using ga[keep_alleles]
+                f'{mpd.sum()/ga[keep_alleles_pi].n_variants:.5}\t') ## This is the same as pi using ga[keep_alleles]
                 #f'{pi:.5}\t') ## Equivalent to mpd.sum() method for calculating pi
 
         #Calculate Fst
@@ -409,7 +403,7 @@ class file_printer(object):
             ## Concatenate subpop genotype arrays into combinded genotype array
             ga_comb = ga0.concatenate([ga1], 1)
             ## Create list of variants to keep with minor allele freq > 5%
-            keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga0+n_ga1)))
+            #keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga0+n_ga1)))
 
             # print(ga_comb.n_variants)
             # print(ga_comb[keep_alleles].n_variants)
