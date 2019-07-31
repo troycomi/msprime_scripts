@@ -317,23 +317,100 @@ class file_printer(object):
 
         length = tree_sequence.get_sequence_length()
         haplotypes = tree_sequence.genotype_matrix()
-        for pop in pops:
-            mpd = allel.mean_pairwise_difference(
-                allel.HaplotypeArray(
-                    haplotypes[:, indices == populations[pop]]
-                ).count_alleles())
-            writer.write(
-                f'{mpd.sum()/length:.5}\t')
 
+        ga_comb = allel.HaplotypeArray(
+                    haplotypes[:, indices == populations['AF']]
+                    ).to_genotypes(ploidy=2).concatenate(
+            [   allel.HaplotypeArray(
+                 haplotypes[:, indices == populations['EU']]
+             ).to_genotypes(ploidy=2),
+                allel.HaplotypeArray(
+                 haplotypes[:, indices == populations['AS']]
+             ).to_genotypes(ploidy=2)],
+            1)
+
+        keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(ga_comb.n_samples)))
+
+        # for pop in pops:
+        #     mpd = allel.mean_pairwise_difference(
+        #         allel.HaplotypeArray(
+        #             haplotypes[:, indices == populations[pop]]
+        #         ).count_alleles())
+        #     writer.write(
+        #         f'{mpd.sum()/length:.5}\t')
+        #
+        # for pairs in (('AF', 'EU'), ('AF', 'AS'), ('EU', 'AS')):
+        #     count1 = allel.HaplotypeArray(
+        #         haplotypes[:, indices == populations[pairs[0]]]
+        #     ).count_alleles()
+        #     count2 = allel.HaplotypeArray(
+        #         haplotypes[:, indices == populations[pairs[1]]]
+        #     ).count_alleles()
+        #     num, den = allel.hudson_fst(count1, count2)
+        #     writer.write(f'{num.sum() / den.sum():.5}\t')
+        # writer.write('\n')
+
+        # Calculate pi
+        for pop in pops:
+            ## Create genotype array from tree_sequence haplotype data for
+            ## population and ploidy=2
+            ga = allel.HaplotypeArray(
+                haplotypes[:, indices == populations[pop]]
+            ).to_genotypes(ploidy=2)
+
+            ## Create list of variants to keep with maf > 5%; list of TRUE/FALSE
+            n_ga = ga.n_samples
+            keep_alleles_pi = ga.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga)))
+
+            ## Calculate mean_pairwise_difference for genotype array including
+            ## variants with maf > 5%
+            mpd = allel.mean_pairwise_difference(
+                ga[keep_alleles_pi].count_alleles()
+            )
+
+            ## Create array listing indices of variants with maf > 5%
+            #ar = np.where(keep_alleles_pi)
+            ## Calculate pi on genotype array for variants with maf > 5%
+            #pi = allel.sequence_diversity(np.arange(1,ar[0].shape[0]+1) ,ga[keep_alleles_pi].count_alleles()) ## OKAY
+
+            writer.write(
+                f'{mpd.sum()/ga[keep_alleles_pi].n_variants:.5}\t') ## This is the same as pi using ga[keep_alleles]
+                #f'{pi:.5}\t') ## Equivalent to mpd.sum() method for calculating pi
+
+        #Calculate Fst
         for pairs in (('AF', 'EU'), ('AF', 'AS'), ('EU', 'AS')):
-            count1 = allel.HaplotypeArray(
-                haplotypes[:, indices == populations[pairs[0]]]
-            ).count_alleles()
-            count2 = allel.HaplotypeArray(
-                haplotypes[:, indices == populations[pairs[1]]]
-            ).count_alleles()
-            num, den = allel.hudson_fst(count1, count2)
-            writer.write(f'{num.sum() / den.sum():.5}\t')
+            ## Set up empty list of lists for subpop array indices
+            subpops = []
+            ## Generate haplotype array for subpopulation from tree_sequence haplotype data
+            ha0 = allel.HaplotypeArray(
+                haplotypes[:, indices == populations[pairs[0]] ]
+            )
+            ## Convert haplotype array to genotype array with ploidy=2
+            ga0 = ha0.to_genotypes(ploidy=2)
+            ## Identify number of samples in subpop genotype array,
+            ## add these as indices to subpop list
+            n_ga0 = ga0.n_samples
+            subpops.append(list(range(0,n_ga0)))
+
+            ha1 = allel.HaplotypeArray(
+                haplotypes[:, indices == populations[pairs[1]] ]
+            )
+            ga1 = ha1.to_genotypes(ploidy=2)
+            n_ga1 = ga1.n_samples
+            subpops.append(list(range(n_ga0,n_ga0+n_ga1)))
+
+            ## Concatenate subpop genotype arrays into combinded genotype array
+            ga_comb = ga0.concatenate([ga1], 1)
+            ## Create list of variants to keep with minor allele freq > 5%
+            #keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga0+n_ga1)))
+
+            # print(ga_comb.n_variants)
+            # print(ga_comb[keep_alleles].n_variants)
+            ## Calculate Fst based on combined genotyp data and variants with MAF > 5%
+            a, b, c = allel.weir_cockerham_fst( ga_comb[keep_alleles], subpops )
+            fst = np.sum(a) / ( np.sum(a) + np.sum(b) + np.sum(c) )
+
+            writer.write(f'{fst:.5}\t')
         writer.write('\n')
 
     def haplo_needed(self):

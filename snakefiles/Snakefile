@@ -25,7 +25,7 @@ msprime_base_params = (config['msprime']['base_params']
 model = config['msprime']['model']
 
 paths = config['paths']
-paths['base_output'] = paths['base_output'].format(model=model)  # append model to base output
+paths['base_output'] = paths['base_output'].format(model=model)
 
 dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
@@ -240,7 +240,6 @@ def check_vcf(wildcards):
     else:
         return format_path(paths['raw_vcf'], wildcards)
 
-        
 rule process_vcf:
     input: check_vcf
 

@@ -55,7 +55,8 @@ paths:
 
     # Output directory for simulations etc.
     base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}"
-    admixed_dir: "__BASE_OUTPUT__/n1_0.03_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
+    admixed_dir: "__BASE_OUTPUT__/n1_0.0_pi_test"
+                # "__BASE_OUTPUT__/n1_0.03_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir
     config_copy: "__ADMIXED_DIR__/config_copy.yaml"
     # null is always stored in base/null:
