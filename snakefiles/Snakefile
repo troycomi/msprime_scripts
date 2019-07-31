@@ -1,6 +1,6 @@
 # Snakefile to replace the workflow of https://github.com/abwolf/examples
-configfile: "della_config.yaml"
-#configfile: "config.yaml"
+#configfile: "della_config.yaml"
+configfile: "config.yaml"
 
 import random
 import os
@@ -25,7 +25,7 @@ msprime_base_params = (config['msprime']['base_params']
 model = config['msprime']['model']
 
 paths = config['paths']
-paths['base_output'] += model  # append model to base output
+paths['base_output'] = paths['base_output'].format(model=model)  # append model to base output
 
 dirs = {'null': os.path.split(paths['null_dir'])[1],
         'admixed': os.path.split(paths['admixed_dir'])[1]}
@@ -39,7 +39,11 @@ localrules:
     generate_options,
     haplotype_to_sample,
     split_ecdf,
-    summary_statistics
+    summary_statistics,
+    merge_pi,
+    calc_admix,
+    calc_deserts,
+    significant_windows
 
 batch = config['msprime']['batch_size']
 group_inputs = []
@@ -250,7 +254,7 @@ rule process_vcf:
 
     shell:
         "if [[ {paths[sstar_dir]} == /Genomics* ]]; then \n"
-            "vcftools=vcftools\n"
+            "vcftools=/usr/local/vcftools/0.1.15/bin/vcftools\n"
         "else \n"
             "module load samtools \n"
             "vcftools={paths[vcftools_bin]}\n"
@@ -506,9 +510,7 @@ checkpoint split_ecdf:
 
     params:
         splitnames=get_split_names,
-        batch_size=batch
-        # TODO use the //10 for larger samples, change all della to gen (configs, profiles)
-        #batch_size=batch//10
+        batch_size=batch//10
 
     shell:
         'mkdir {output}\n'

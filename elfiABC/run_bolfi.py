@@ -7,18 +7,29 @@ import shutil
 import subprocess
 
 
-base_output = '/tigress/tcomi/abwolf_abc/'
-summary_output = '/tigress/tcomi/abwolf_abc/SplitPop/summary.txt'
+base_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}'
+summary_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/SplitPop/100_summary.txt'
+model = 'SplitPop'
 @click.command()
 @click.option('-b', '--base', default="",
               help='Root directory to store temporary output')
 @click.option('-o', '--output', default="",
               help='Output file containing parameters and summary statistics')
-@click.option('-n', '--number-processes', default=5,
+@click.option('-n', '--number-processes', default=10,
               help='Number of simulations to run in this instance')
 def main(base, output, number_processes):
     # generate null (should only execute once)
-    subprocess.call(["snakemake", "null", "--profile", "elfi_profile"])
+    use = 'BOLFI'
+    #use = 'SINGLE'
+    if use != 'SINGLE':
+        click.secho('Generating null dataset', fg='yellow')
+        subprocess.check_call(["snakemake", "null",
+                               "--profile", "elfi_profile"])
+        click.secho('Creating environments', fg='yellow')
+        subprocess.check_call(["snakemake",
+                         "--profile", "elfi_profile",
+                         "--create-envs-only"])
+        click.secho('Starting BOLFI', fg='yellow')
     if base:
         global base_output
         base_output = base
@@ -38,9 +49,9 @@ def main(base, output, number_processes):
                                               stdout=False)
     vec_snake = elfi.tools.vectorize(snake_sim)
     empirical = np.array([0,  # desert MSE
-                          0.00047, 0.00035, 0.00035,  # pi
-                          0.1, 0.1, 0.1,  # fst
-                          0.03, 0.037])  # admix
+                          0.291761, 0.328705, 0.335145,  # pi
+                          0.12985, 0.156539, 0.0921547,  # fst
+                          0.023, 0.019])  # admix
     snake_node = elfi.Simulator(vec_snake, model['n1'],
                                 model['n2'],
                                 model['split_prop'],
@@ -49,36 +60,39 @@ def main(base, output, number_processes):
                                 name='snake_sim')
     snake_node.uses_meta = True
     distance = elfi.Distance('euclidean', snake_node, name='dist')
-    pool = elfi.ArrayPool(['n1', 'n2', 'split_prop',
-                           'split_size', 'snake_sim'],
-                          name='bolfi_pool')
+    if use == 'SINGLE':
+        print(snake_sim(0.1, 0.1, 0.1, 100,
+                        seed=2, meta={
+                            'model_name': 'test',
+                            'batch_index': 1,
+                            'submission_index': 2}))
+        return
 
-    bolfi = elfi.BOLFI(distance, batch_size=1,
-                       initial_evidence=6, update_interval=3,
-                       bounds={'n1': (0, 0.3),
-                               'n2': (0, 0.5),
-                               'split_prop': (0, 1),
-                               'split_size': (1, 1861)},
-                       pool=pool)
-    post = bolfi.fit(n_evidence=10, bar=False)
-    pool.save()
-    post.save()
+    elif use == 'BOLFI':
+        pool = elfi.ArrayPool(['n1', 'n2', 'split_prop',
+                               'split_size', 'snake_sim'],
+                              name='bolfi_pool')
 
-    return
+        bolfi = elfi.BOLFI(distance, batch_size=1,
+                           initial_evidence=20, update_interval=3,
+                           bounds={'n1': (0, 0.5),
+                                   'n2': (0, 0.5),
+                                   'split_prop': (0, 1),
+                                   'split_size': (1, 1861)},
+                           pool=pool)
+        post = bolfi.fit(n_evidence=10, bar=False)
+        click.secho('Saving results', fg='yellow')
+        pool.save()
+        post.save()
+        click.secho('Done', fg='green')
 
-    print(snake_sim(0.1, 0.1, 0.1, 100,
-                    seed=2, meta={
-                        'model_name': 'test',
-                        'batch_index': 1,
-                        'submission_index': 2}))
-    return
-
-    rej = elfi.Rejection(distance, model['n1'], batch_size=1)
-    rej.sample(5)
-    return
+        return
 
 
-command = 'snakemake --profile elfi_profile --configfile {config_file}'
+command = ('snakemake '
+           '--profile elfi_profile '
+           '--configfile {config_file} '
+           '--quiet')
 
 
 def prepare_inputs(*inputs, **kwinputs):
@@ -94,6 +108,7 @@ def prepare_inputs(*inputs, **kwinputs):
 
     yml_file = f'{admix_base}.yaml'
 
+    global base_output
     with open(yml_file, 'w') as writer:
         writer.write(f'''---
 paths:
@@ -110,8 +125,9 @@ msprime:
 ''')
 
     kwinputs['config_file'] = yml_file
-    kwinputs['output_root'] = f'{base_output}SplitPop/{admix_base}'
-    kwinputs['output_file'] = f'{base_output}SplitPop/{admix_base}/summary.txt'
+    temp_output = base_output.format(model=model)
+    kwinputs['output_root'] = f'{temp_output}/{admix_base}'
+    kwinputs['output_file'] = f'{temp_output}/{admix_base}/summary.txt'
 
     return inputs, kwinputs
 

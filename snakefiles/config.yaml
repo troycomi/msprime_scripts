@@ -1,7 +1,8 @@
 ---
 paths:
     # path to Admixture_Simulate.py
-    msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/src/Admixture_Simulation.py"
+    #msprime_script: "/Genomics/grid/users/abwolf/SimulatedDemographic/msprime/bin/src/Admixture_Simulation.py"
+    msprime_script: "/Genomics/grid/users/tcomi/msprime_scripts/src/Admixture_Simulation.py"
     # path to sstar windowed calulation directory (Ben's bin)
     sstar_dir: "/Genomics/grid/users/abwolf/SimulatedDemographic/Sstar/s_star_git"
     vcftools_bin: "/usr/local/bin/vcftools"
@@ -22,7 +23,6 @@ paths:
     match_counts: "__BASE_OUTPUT__/{directory}/match_pct/\
                    {seed}_match_counts.tsv"
     null_db: "__NULL_DIR__/match_pct/match_percent.db"
-#    null_db: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/Sriram/null/v_02192019/match_pct/match_percent.db"
     pvalue_table: "__BASE_OUTPUT__/{directory}/match_pct/{seed}.tsv.gz"
     split_chrom_dir: "__NULL_DIR__/split_db"
     split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}"
@@ -75,10 +75,10 @@ msprime:
     # "Tenn_pulsed"
     model: "SplitPop"
     length: 10000000
-    # n1: 0.03
-    # n2: 0.0
-    # split_population_proportion: 0.0
-    # split_population_size: 0
+    n1: 0.0
+    n2: 0.0
+    split_population_proportion: 0.0
+    split_population_size: 1
     EUR: 1006
     ASN: 1008
 
@@ -89,7 +89,7 @@ msprime:
                   --split-population-proportion 0.0 \
                   --split-population-size 1"
 
-    admixed_simulations: 1000
+    admixed_simulations: 100
     admixed_params: " "
 
 s_star:

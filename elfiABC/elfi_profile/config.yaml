@@ -1,10 +1,10 @@
 ---
-directory: /home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles
-cluster-config: /home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles/della_cluster.yaml
-snakefile: /home/tcomi/projects/abwolf_abc/msprime_scripts/snakefiles/Snakefile
+directory: /Genomics/grid/users/tcomi/msprime_scripts/snakefiles
+cluster-config: /Genomics/grid/users/tcomi/msprime_scripts/snakefiles/cluster.yaml
+snakefile: /Genomics/grid/users/tcomi/msprime_scripts/snakefiles/Snakefile
 cluster: "sbatch --cpus-per-task={cluster.n} --mem={cluster.memory} \
-          --time={cluster.time} --output=slurm_out/%x_%A \
-          --job-name={cluster.jobname} --parsable -A eeb"
+          --time={cluster.time} --output=slurm_out/{cluster.jobname}_%A \
+          --job-name={cluster.jobname} --parsable --qos={cluster.qos}"
 
 use-conda: true
 max-jobs-per-second: 1
@@ -12,4 +12,3 @@ local-cores: 1
 latency-wait: 60
 jobs: 50
 nolock: true
-quiet: true
