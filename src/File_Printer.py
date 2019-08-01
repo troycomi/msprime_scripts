@@ -2,8 +2,10 @@ import sys
 import gzip
 import os.path
 from Option_Parser import admixture_option_parser
-import allel
 import numpy as np
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '128'
+import allel
 
 
 def get_basename(file):
@@ -354,61 +356,41 @@ class file_printer(object):
         for pop in pops:
             ## Create genotype array from tree_sequence haplotype data for
             ## population and ploidy=2
-            ga = allel.HaplotypeArray(
+            counts = allel.HaplotypeArray(
                 haplotypes[:, indices == populations[pop]]
-            ).to_genotypes(ploidy=2)
+            ).to_genotypes(ploidy=2).count_alleles()
 
-            ## Create list of variants to keep with maf > 5%; list of TRUE/FALSE
-            n_ga = ga.n_samples
-            keep_alleles_pi = ga.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga)))
+            ## keep with maf > 5% and < 95%
+            maf = counts.values[:, 1] / sum(counts.values[0, :])
+            counts = counts[np.logical_and(maf > 0.05, maf < 0.95)]
 
             ## Calculate mean_pairwise_difference for genotype array including
             ## variants with maf > 5%
-            mpd = allel.mean_pairwise_difference(
-                ga[keep_alleles_pi].count_alleles()
-            )
+            mpd = allel.mean_pairwise_difference(counts)
 
-            ## Create array listing indices of variants with maf > 5%
-            #ar = np.where(keep_alleles_pi)
-            ## Calculate pi on genotype array for variants with maf > 5%
-            #pi = allel.sequence_diversity(np.arange(1,ar[0].shape[0]+1) ,ga[keep_alleles_pi].count_alleles()) ## OKAY
-
-            writer.write(
-                f'{mpd.sum()/ga[keep_alleles_pi].n_variants:.5}\t') ## This is the same as pi using ga[keep_alleles]
-                #f'{pi:.5}\t') ## Equivalent to mpd.sum() method for calculating pi
+            writer.write(f'{mpd.sum()/counts.shape[0]:.5}\t')
 
         #Calculate Fst
         for pairs in (('AF', 'EU'), ('AF', 'AS'), ('EU', 'AS')):
+            num1 = sum(indices == populations[pairs[0]]) // 2
+            num2 = sum(indices == populations[pairs[1]]) // 2
             ## Set up empty list of lists for subpop array indices
-            subpops = []
-            ## Generate haplotype array for subpopulation from tree_sequence haplotype data
-            ha0 = allel.HaplotypeArray(
-                haplotypes[:, indices == populations[pairs[0]] ]
-            )
-            ## Convert haplotype array to genotype array with ploidy=2
-            ga0 = ha0.to_genotypes(ploidy=2)
-            ## Identify number of samples in subpop genotype array,
-            ## add these as indices to subpop list
-            n_ga0 = ga0.n_samples
-            subpops.append(list(range(0,n_ga0)))
+            subpops = [list(range(0, num1)),
+                       list(range(num1, num1+num2))]
+            ga = allel.HaplotypeArray(
+                haplotypes[:, np.logical_or(
+                    indices == populations[pairs[0]],
+                    indices == populations[pairs[1]])]
+            ).to_genotypes(ploidy=2)
+            counts = ga.count_alleles()
+            maf = counts.values[:, 1] / sum(counts.values[0, :])
 
-            ha1 = allel.HaplotypeArray(
-                haplotypes[:, indices == populations[pairs[1]] ]
-            )
-            ga1 = ha1.to_genotypes(ploidy=2)
-            n_ga1 = ga1.n_samples
-            subpops.append(list(range(n_ga0,n_ga0+n_ga1)))
-
-            ## Concatenate subpop genotype arrays into combinded genotype array
-            ga_comb = ga0.concatenate([ga1], 1)
-            ## Create list of variants to keep with minor allele freq > 5%
-            #keep_alleles = ga_comb.count_alleles().is_biallelic_01(min_mac=int(0.05*(n_ga0+n_ga1)))
-
-            # print(ga_comb.n_variants)
-            # print(ga_comb[keep_alleles].n_variants)
-            ## Calculate Fst based on combined genotyp data and variants with MAF > 5%
-            a, b, c = allel.weir_cockerham_fst( ga_comb[keep_alleles], subpops )
-            fst = np.sum(a) / ( np.sum(a) + np.sum(b) + np.sum(c) )
+            ## Calculate mean Fst based on combined genotype data
+            a, b, c = allel.weir_cockerham_fst(
+                ga[np.logical_and(maf > 0.05, maf < 0.95)],
+                subpops)
+            fst = np.mean(np.sum(a, axis=1) / (
+                np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1)))
 
             writer.write(f'{fst:.5}\t')
         writer.write('\n')

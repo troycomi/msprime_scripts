@@ -255,10 +255,6 @@ def test_print_debug(default, nonDefault):
     nonDefault.print_debug(output)
     output = output.getvalue().split('\n')
 
-    with open('test2.txt', 'w') as writer:
-        for i, l in enumerate(output):
-            writer.write(f"{i}\t|{l}\n")
-
     # test contents of migration matrix
     assert '1.50e-05' in output[2]
     assert '7.90e-06' in output[2]

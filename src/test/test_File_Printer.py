@@ -487,7 +487,7 @@ def test_print_vcf():
 
 def test_print_pi():
     output = io.StringIO()
-    opts = admixture_option_parser().parse_args([])
+    opts = admixture_option_parser().parse_args('-r 216'.split())
     with file_printer(opts) as fp:
         # when writer is still none
         fp.print_pi(None, None, None)
@@ -500,8 +500,13 @@ def test_print_pi():
         print(output.getvalue())
         lines = output.getvalue().split('\n')
         assert lines[0].split() == 'AF EU AS AF-EU AF-AS EU-AS'.split()
-        assert lines[1].split()[0] == '0.000433'
-        assert lines[1].split()[4] == '0.40093'
+        tokens = lines[1].split()
+        assert tokens[0] == '0.27959'  # vcftools 0.27937
+        assert tokens[1] == '0.32405'  # vcftools 0.323697
+        assert tokens[2] == '0.34194'  # vcftools 0.341196
+        assert tokens[3] == '0.2119'  # vcftools 0.211696
+        assert tokens[4] == '0.45429'  # vcftools 0.453715
+        assert tokens[5] == '0.19144'  # vcftools 0.191207
 
 
 def test_print_ils():
