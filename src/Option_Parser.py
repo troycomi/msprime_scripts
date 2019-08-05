@@ -19,7 +19,7 @@ class admixture_option_parser(ArgumentParser):
                           dest="model",
                           default="Tenn",
                           choices=['Tenn', 'Sriram', 'SplitPop', 'OutOfAFR',
-                                   'Tenn_nomod', 'Tenn_pulsed'],
+                                   'Tenn_nomod', 'Tenn_pulsed', 'PreOutOfAFR'],
                           help="specify which demographic model to use by "
                                "name; default=Tenn")
 

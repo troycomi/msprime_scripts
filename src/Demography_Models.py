@@ -1079,6 +1079,40 @@ class SplitPop_demography(Base_demography):
         # rapid popualtion growth at 5.1kya
         self.r_AF2 = 0.0166
 
+        ### TESTING FST
+        # Updae to Gravel 2011 Values
+        self.r_EU1 = 0.0038
+        # self.r_AS1 = 0.0031
+        # self.r_EU1 = 0.0027
+        # Gravel NIEHS vales
+        # self.r_EU1 = 0.0040
+        # self.r_AS1 = 0.0055
+
+        # Update to Gravel 2011 Values ; Exons
+        self.N_AF0 = 15388
+        self.N_EU0 = 1620
+        self.N_AS0 = 821
+        self.N_B = 2758
+        ## No effect
+        # self.T_B = 60e3 / self.generation_time
+        ## Keep These values
+        self.T_AF = 316e3 / self.generation_time
+        self.T_B = 98e3 / self.generation_time
+        self.T_EU_AS = 28e3 / self.generation_time
+        ## Increasing mutation rate dirves up number of variants
+            ## but doesn't change Fst values much
+        self.mutation_rate = 2.5e-8
+        ## Decreasing Ne drize up the Fst value...
+        # self.N_EU = 100e3
+        # self.N_AS = 100e3
+        # self.N_AF = 100e3
+        ## Increase Ne drove down Fst values...pretty close to empirical
+            ## AFR-EUR  AFR-EAS  EUR-EAS
+            ## 0.157105 0.177657 0.0408926
+        self.N_EU = 512e4
+        self.N_AS = 640e4
+        self.N_AF = 424e4
+
     def set_populations(self):
         self.populations = [
             Population(abbreviation='N1',
@@ -1166,12 +1200,12 @@ class SplitPop_demography(Base_demography):
                 growth_rate=self.r_AS1,
                 population_id=ids['AS']),
 
-            # set AS popsize to AS0
-            msprime.PopulationParametersChange(
-                time=self.T_PULSE2-1,
-                initial_size=self.N_AS0,
-                growth_rate=0,
-                population_id=ids['AS']),
+            # # set AS popsize to AS0
+            # msprime.PopulationParametersChange(
+            #     time=self.T_PULSE2-1,
+            #     initial_size=self.N_AS0,
+            #     growth_rate=0,
+            #     population_id=ids['AS']),
 
             # Neand1 to EAS pulse of introgression
             msprime.MassMigration(
@@ -1248,17 +1282,17 @@ class SplitPop_demography(Base_demography):
                 destination=ids['N1'],
                 proportion=self.m_PULSE1),
 
+            # SplitPop merges into EUR_EAS at 1kya before admixture
+            msprime.MassMigration(
+                time=self.T_PULSE1+40,
+                source=ids['SP'],
+                destination=ids['B'],
+                proportion=1.0),
+
             # Population B merges into African at T_B
             msprime.MassMigration(
                 time=self.T_B,
                 source=ids['B'],
-                destination=ids['AF'],
-                proportion=1.0),
-
-            # SplitPop merges into African at T_B
-            msprime.MassMigration(
-                time=self.T_B,
-                source=ids['SP'],
                 destination=ids['AF'],
                 proportion=1.0),
 
@@ -1446,3 +1480,173 @@ class Out_of_africa_demography(Base_demography):
     def get_debug_configuration(self):
         return [pop.get_debug_configuration(includeRate=True)
                 for pop in self.populations]
+
+
+class Pre_out_of_africa_admixture(Sriram_demography):
+    def set_constants(self):
+        Sriram_demography.set_constants(self)
+
+        self.T_PULSE_preOOA = 250e3 / self.generation_time
+
+
+    def set_populations(self):
+        """set the self.populations variable
+        a list of Populations for the simulation"""
+
+        Sriram_demography.set_populations(self)
+
+        # only change from tennison is all growth rates are 0
+        for pop in self.populations:
+            pop.rate = 0.0
+
+    def set_demographic_events(self):
+        ids = self.get_population_map()
+        migrations = self.get_later_migrations()
+
+        self.events = []
+
+        self.events += [
+            # Neand1 to EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE2,
+                source=ids['AS'],
+                destination=ids['N1'],
+                proportion=self.m_PULSE2),
+
+            # AS merges into EU, now termed "B"
+            msprime.MassMigration(
+                time=self.T_EU_AS,
+                source=ids['AS'],
+                destination=ids['EU'],
+                proportion=1.0)
+        ]
+
+        ids['B'] = ids['EU']
+
+        self.events += [
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=0),
+
+            # migration between "B" and Africa begins
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('AF_B', 0),
+                matrix_index=(ids['B'], ids['AF'])),
+            msprime.MigrationRateChange(
+                time=self.T_EU_AS,
+                rate=migrations.get('B_AF', 0),
+                matrix_index=(ids['AF'], ids['B'])),
+
+            # set parameters of population "B"
+            msprime.PopulationParametersChange(
+                time=self.T_EU_AS,
+                initial_size=self.N_B,
+                growth_rate=0,
+                population_id=ids['B']),
+
+            # population bottleneck of B begins
+            msprime.PopulationParametersChange(
+                time=self.T_B_BN,
+                initial_size=self.N_B_BN,
+                growth_rate=0,
+                population_id=ids['B']),
+
+            # population bottleneck of B ends shortly before initial admixture
+            msprime.PopulationParametersChange(
+                time=self.T_B_BN + 20,
+                initial_size=self.N_B,
+                growth_rate=0,
+                population_id=ids['B']),
+
+            # Neand1 to EUR_EAS pulse of introgression
+            msprime.MassMigration(
+                time=self.T_PULSE1,
+                source=ids['B'],
+                destination=ids['N1'],
+                proportion=self.m_PULSE1),
+
+            # Population B merges into Africa at T_B
+            msprime.MassMigration(
+                time=self.T_B,
+                source=ids['B'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set all migration rates to zero
+            msprime.MigrationRateChange(
+                time=self.T_B,
+                rate=0),
+
+            # N_2 merges with N_1 at T_N1_N2
+            msprime.MassMigration(
+                time=self.T_N1_N2,
+                source=ids['N2'],
+                destination=ids['N1'],
+                proportion=1.0),
+
+            # set parameters of ancestral Neandertal population
+            msprime.PopulationParametersChange(
+                time=self.T_N1_N2,
+                initial_size=self.N_A,
+                population_id=ids['N1']),
+
+            # Neand1 has short bottleneck
+            msprime.PopulationParametersChange(
+                time=self.T_N_BN,
+                initial_size=self.N_N_BN,
+                growth_rate=0,
+                population_id=ids['N1']),
+
+            # Neand1 bottleneck ends
+            msprime.PopulationParametersChange(
+                time=self.T_N_BN + 20,
+                initial_size=self.N_A,
+                growth_rate=0,
+                population_id=ids['N1']),
+
+            msprime.MassMigration(
+                time=self.T_PULSE_preOOA,
+                source=ids['N1'],
+                destination=ids['AF'],
+                proportion=0.1),
+
+            # DE merges with N1
+            msprime.MassMigration(
+                time=self.T_DE_N,
+                source=ids['DE'],
+                destination=ids['N1'],
+                proportion=1.0),
+            msprime.PopulationParametersChange(
+                time=self.T_DE_N,
+                initial_size=self.N_A,
+                population_id=ids['N1']),
+
+            # Neandertals merge into modern human lineage at time T_MH_N
+            msprime.MassMigration(
+                time=self.T_MH_N,
+                source=ids['N1'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancetral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_N,
+                initial_size=self.N_A,
+                population_id=ids['AF']),
+
+            # Chimp lineage merges into ancestral hominin population
+            # at time T_MH_CH
+            msprime.MassMigration(
+                time=self.T_MH_CH,
+                source=ids['CH'],
+                destination=ids['AF'],
+                proportion=1.0),
+
+            # set parameters of ancestral hominin population
+            msprime.PopulationParametersChange(
+                time=self.T_MH_CH,
+                initial_size=self.N_A,
+                population_id=ids['AF'])
+        ]
