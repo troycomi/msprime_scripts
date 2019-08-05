@@ -3,12 +3,12 @@ __default__:
     "n": 1
     "memory": '2G'
     "time": '0-23:00:00'
-    "jobname": 'snake'
     "qos": '1day'
+    "jobname": 'snake'
 
 vcf_to_sstar:
     "n": 10
-    "memory": '10G'
+    "memory": '20G'
     "time": '0-4'
     "jobname": 'vcf-to-sstar'
 
@@ -48,7 +48,7 @@ match_pvalue:
 ecdf_bed:
     "n": 10
     "time": '0-4'
-    "memory": '25G'
+    "memory": '35G'
     "jobname": 'ecdf-bed'
 
 desert:

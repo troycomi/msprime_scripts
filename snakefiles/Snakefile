@@ -42,8 +42,6 @@ localrules:
     summary_statistics,
     merge_pi,
     calc_admix,
-    calc_deserts,
-    significant_windows
 
 batch = config['msprime']['batch_size']
 group_inputs = []
@@ -799,7 +797,6 @@ rule summary_statistics:
     input:
         pi=ancient(paths['pi_joined']),
         simulated=ancient(paths['below_thresh']),
-        empirical=ancient(paths['empirical_windows']),
         admixed=ancient(paths['sstar_out']),
 
     output:
@@ -813,5 +810,4 @@ rule summary_statistics:
             '--pi {input.pi} '
             '--admixed {input.admixed} '
             '--simulated {input.simulated} '
-            '--observed {input.empirical} '
             '--output {output} '

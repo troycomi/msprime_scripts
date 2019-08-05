@@ -43,7 +43,6 @@ paths:
     desert_windows: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb.gz"
     desert_windows_unzip: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb"
     below_thresh: "__ECDF_BED_DIR__/ALL.bed.merged.5_to_10Mb.prop_blw_thrhld"
-    empirical_windows: "/Genomics/grid/users/abwolf/NeanderthalSeq/bin/Count_windows_blw_thrhld_EUREAS.txt"
     summary: "__ADMIXED_DIR__/summary.txt"
 
     # batch temp files
@@ -54,7 +53,7 @@ paths:
     ecdf_bed_batch: "__ECDF_BED_DIR__/eb_{id}.temp"
 
     # Output directory for simulations etc.
-    base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}"
+    base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC_new/{model}"
     admixed_dir: "__BASE_OUTPUT__/n1_0.0_pi_test"
                 # "__BASE_OUTPUT__/n1_0.03_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir

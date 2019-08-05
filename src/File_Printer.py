@@ -3,8 +3,6 @@ import gzip
 import os.path
 from Option_Parser import admixture_option_parser
 import numpy as np
-import os
-os.environ['NUMEXPR_MAX_THREADS'] = '128'
 import allel
 
 

@@ -4,27 +4,20 @@ from collections import OrderedDict
 
 
 @click.command()
-@click.option('-t', '--observed', type=click.File('r'))
 @click.option('-s', '--simulated', type=click.File('r'))
 @click.option('-p', '--pi', type=click.File('r'))
 @click.option('-a', '--admixed', type=click.File('r'))
 @click.option('-o', '--output', type=click.File('w'))
-def main(observed, simulated, pi, admixed, output):
+def main(simulated, pi, admixed, output):
     outputs = OrderedDict()
 
-    if observed and simulated:
+    if simulated:
         # handle desert distribution
-        observed = pd.read_csv(observed, sep='\t',
-                               usecols=[0, 3],
-                               index_col=0,
-                               names=['winsize', 'ob_prop'])
         simulated = pd.read_csv(simulated, sep='\t',
                                 usecols=[1, 3],
-                                index_col=0,  # this is relative to usecols
                                 names=['winsize', 'sim_prop'])
-        joined = simulated.join(observed, how='left')
-        outputs['desert-MSE'] = ((joined['sim_prop'] -
-                                  joined['ob_prop'])**2).mean()
+        for row in simulated.itertuples(index=False):
+            outputs[f'desert-{row.winsize}'] = row.sim_prop
 
     if pi:
         # add in pi results
