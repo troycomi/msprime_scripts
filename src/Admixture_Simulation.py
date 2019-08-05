@@ -49,6 +49,7 @@ def get_model(options):
         "OutOfAfr": Demography_Models.Out_of_africa_demography(options),
         "Tenn_nomod": Demography_Models.Tenn_no_modern_migration(options),
         "Tenn_pulsed": Demography_Models.Tenn_pulsed_migration(options),
+        "PreOutOfAFR": Demography_Models.Pre_out_of_africa_admixture(options),
     }
 
     model = models.get(options.model, None)
