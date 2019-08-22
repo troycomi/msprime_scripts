@@ -20,8 +20,8 @@ combine_introgressed_regions:
 
 null_match:
     "n": 10
-    "time": '0-4'
-    "memory": "10G"
+    "time": '0-6'
+    "memory": "20G"
     "jobname": 'null-match'
 
 build_db:
@@ -33,11 +33,17 @@ generate_ecdf:
     "jobname": 'generate-ecdf'
     "time": '0-12'
 
-join_ecdf:
-    "memory": '15G'
+join_ecdf_step1:
+    "memory": '20G'
     "jobname": 'join-ecdf'
-    "time": '14-0'
-    "qos": 'long'
+    "time": '3-0'
+    "qos": '1wk'
+
+join_ecdf:
+    "memory": '40G'
+    "jobname": 'join-ecdf'
+    "time": '7-0'
+    "qos": '1wk'
 
 match_pvalue:
     "jobname": 'match-pvalue'

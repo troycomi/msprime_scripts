@@ -7,9 +7,15 @@ import shutil
 import subprocess
 
 
-base_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC_new/{model}'
-summary_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC_new/SplitPop/100_summary.txt'
+base_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}/bolfi'
+admixed_size = 200
+summary_output = ('/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/'
+                  f'SplitPop/bolfi/{admixed_size}_summary.txt')
 model = 'SplitPop'
+command = ('snakemake '
+           '--configfile {config_file} '
+           '--quiet ')
+
 @click.command()
 @click.option('-b', '--base', default="",
               help='Root directory to store temporary output')
@@ -18,30 +24,43 @@ model = 'SplitPop'
 @click.option('-n', '--number-processes', default=10,
               help='Number of simulations to run in this instance')
 def main(base, output, number_processes):
+    global base_output
+    use = 'LOCAL'
+
+    # write null yaml to override base output
+    with open('null.yml', 'w') as writer:
+        writer.write(f'''---
+paths:
+    base_output: "{base_output}"
+''')
+
     # generate null (should only execute once)
-    # use = 'BOLFI'
-    use = 'SINGLE'
-    click.secho('Generating null dataset', fg='yellow')
-    subprocess.check_call(["snakemake", "null",
-                           "--profile", "elfi_profile"])
-    click.secho('Creating environments', fg='yellow')
-    subprocess.check_call(["snakemake",
-                     "--profile", "elfi_profile",
-                     "--create-envs-only"])
+    # click.secho('Generating null dataset', fg='yellow')
+    # subprocess.check_call(["snakemake", "null",
+    #                        "--profile", "elfi_profile",
+    #                        "--configfile", "null.yml"])
+    # click.secho('Creating environments', fg='yellow')
+    # subprocess.check_call(["snakemake",
+    #                  "--profile", "elfi_profile",
+    #                  "--create-envs-only"])
     click.secho('Starting BOLFI', fg='yellow')
     if base:
-        global base_output
         base_output = base
     if output:
         global summary_output
         summary_output = output
+    global command
+    if use == 'LOCAL':
+        command += '--profile elfi_single '
+    else:
+        command += '--profile elfi_profile '
     # setup priors
     elfi.set_client(multiprocessing.Client(num_processes=number_processes))
     model = elfi.ElfiModel(name='msprime')
     elfi.Prior('uniform', 0, 0.5, model=model, name='n1')
     elfi.Prior('uniform', 0, 0.5, model=model, name='n2')
     elfi.Prior('uniform', 0, 1, model=model, name='split_prop')
-    elfi.Prior('uniform', 1, 1861, model=model, name='split_size')
+    elfi.Prior('uniform', 1, 2758, model=model, name='split_size')
     snake_sim = elfi.tools.external_operation(command,
                                               prepare_inputs=prepare_inputs,
                                               process_result=process_result,
@@ -51,7 +70,7 @@ def main(base, output, number_processes):
                           0.0176096, 0.0164607, 0.0136497,  # desert 8-10
                           0.291761, 0.328705, 0.335145,  # pi
                           0.12985, 0.156539, 0.0921547,  # fst
-                          0.023, 0.019])  # admix
+                          0.016, 0.019])  # admix
     snake_node = elfi.Simulator(vec_snake, model['n1'],
                                 model['n2'],
                                 model['split_prop'],
@@ -60,15 +79,27 @@ def main(base, output, number_processes):
                                 name='snake_sim')
     snake_node.uses_meta = True
     distance = elfi.Distance('euclidean', snake_node, name='dist')
-    if use == 'SINGLE':
-        print(vec_snake(np.array([0.20, 0.1, 0]*4),  # n1
-                        np.array([0.0]*6 + [0.1]*6),  # n2
-                        np.array([0.1, 0] * 6),  # split_prop
-                        np.array([1000]*12),  # split_size
-                        seed=2, meta={
-                            'model_name': 'test',
-                            'batch_index': 1,
-                            'submission_index': 2}))
+    if use == 'SINGLE' or use == 'LOCAL':
+        if use == 'LOCAL':
+            number_processes = 1
+        from multiprocessing import Pool
+        with Pool(number_processes) as pool:
+            print(pool.starmap(
+                vec_snake,
+                [
+                    (0.2, 0.0, 0.1, 1000),
+                    (0.1, 0.0, 0.1, 1000),
+                    (0.0, 0.0, 0.1, 1000),
+                    (0.2, 0.0, 0.0, 1000),
+                    (0.1, 0.0, 0.0, 1000),
+                    (0.0, 0.0, 0.0, 1000),
+                    (0.2, 0.1, 0.1, 1000),
+                    (0.1, 0.1, 0.1, 1000),
+                    (0.0, 0.1, 0.1, 1000),
+                    (0.2, 0.1, 0.0, 1000),
+                    (0.1, 0.1, 0.0, 1000),
+                    (0.0, 0.1, 0.0, 1000),
+                ]))
         return
 
     elif use == 'BOLFI':
@@ -86,7 +117,7 @@ def main(base, output, number_processes):
                            bounds={'n1': (0, 0.5),
                                    'n2': (0, 0.5),
                                    'split_prop': (0, 1),
-                                   'split_size': (1, 1861)},
+                                   'split_size': (1, 2758)},
                            pool=pool)
         post = bolfi.fit(n_evidence=20, bar=False)
         click.secho('Saving results', fg='yellow')
@@ -97,23 +128,24 @@ def main(base, output, number_processes):
         return
 
 
-command = ('snakemake '
-           '--profile elfi_profile '
-           '--configfile {config_file} '
-           '--quiet')
-
-
 def prepare_inputs(*inputs, **kwinputs):
     n1, n2, split_prop, split_size = inputs
     split_size = int(split_size)
-    meta = kwinputs['meta']
-    seed = kwinputs['seed']
 
-    admix_base = '{model_name}_{batch_index}_{submission_index}'
-    if 'index_in_batch' in meta:
-        admix_base += '_{index_in_batch}'
-    admix_base = admix_base.format(**meta)
-    admix_base = f'single_{n1}_{n2}_{split_prop}'
+    if 'seed' in kwinputs:
+        seed = kwinputs['seed']
+    else:
+        seed = 2
+
+    if 'meta' in kwinputs:
+        meta = kwinputs['meta']
+        admix_base = '{model_name}_{batch_index}_{submission_index}'
+        if 'index_in_batch' in meta:
+            admix_base += '_{index_in_batch}'
+        admix_base = admix_base.format(**meta)
+
+    else:
+        admix_base = f'single_{admixed_size}_{n1}_{n2}_{split_prop}'
 
     yml_file = f'{admix_base}.yaml'
 
@@ -131,6 +163,7 @@ msprime:
     n2: {n2}
     split_population_proportion: {split_prop}
     split_population_size: {split_size}
+    admixed_simulations: {admixed_size}
 ''')
 
     kwinputs['config_file'] = yml_file
@@ -143,7 +176,6 @@ msprime:
 
 def process_result(completed_process, *inputs, **kwinputs):
     output_file = kwinputs['output_file']
-    return 0
 
     results = np.loadtxt(output_file, skiprows=1)
 

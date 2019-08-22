@@ -1,0 +1,8 @@
+---
+directory: /Genomics/grid/users/tcomi/msprime_scripts/snakefiles
+snakefile: /Genomics/grid/users/tcomi/msprime_scripts/snakefiles/Snakefile
+
+use-conda: true
+latency-wait: 60
+jobs: 5
+nolock: true

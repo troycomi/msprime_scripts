@@ -27,6 +27,7 @@ paths:
     split_chrom_dir: "__NULL_DIR__/split_db"
     split_chrom: "__SPLIT_CHROM_DIR__/chrom_{part}"
     split_null_db: "__NULL_DIR__/null_db_{part}.pkl"
+    joined_null_db: "__NULL_DIR__/joined_{ind}_null_db.pkl"
     ecdf_data: "__NULL_DIR__/null_db.pkl"
     ecdf_bed_dir: "__ADMIXED_DIR__/bedfiles"
     ecdf_bed_files: "__ECDF_BED_DIR__/{seed}.sstar_sig_{sstarpvalue}\
@@ -53,7 +54,7 @@ paths:
     ecdf_bed_batch: "__ECDF_BED_DIR__/eb_{id}.temp"
 
     # Output directory for simulations etc.
-    base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC_new/{model}"
+    base_output: "/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}"
     admixed_dir: "__BASE_OUTPUT__/n1_0.0_pi_test"
                 # "__BASE_OUTPUT__/n1_0.03_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0"
     # copy of this file is stored in admixed_dir

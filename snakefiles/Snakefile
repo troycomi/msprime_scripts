@@ -4,6 +4,7 @@ configfile: "config.yaml"
 
 import random
 import os
+import math
 from clean_config import clean_config_paths
 from get_batch_files import group_rule_input,\
                                get_batch_files
@@ -107,8 +108,11 @@ group_inputs.append(
         group_name='ecdf_bed'))
 
 # get batched outputs, merge_split is fast and can take more samples
+# vcf_to_sstar needs to be split further
 group_outputs = get_batch_files(group_inputs, batch,
-                                merge_split=batch*10)
+                                merge_split=batch*10,
+                                admixed_vcf=batch//4,
+                                null_vcf=batch//4)
 
 def all_input(wildcards):
     result = ancient(expand(paths['options'],
@@ -374,11 +378,19 @@ rule haplotype_to_sample:
                 writer.write(f"{counter}\t{pop}:1\n")
                 counter += 1
 
+def check_match_pct(wildcards):
+    if os.path.exists(paths['match_counts'].format(**wildcards)):
+        return []
+    else:
+        return {
+            'vcf': paths['mod_vcf'].format(**wildcards),
+            'vcf_tbi': paths['mod_tbi'].format(**wildcards),
+            'pop': paths['popfile']
+        }
+    
 rule match_pct:
     input:
-        vcf=ancient(rules.process_vcf.output.mod),
-        vcf_tbi=ancient(rules.process_vcf.output.mod_tbi),
-        pop=ancient(rules.generate_popfile.output)
+        unpack(check_match_pct)
 
     output:
         temp(paths['match_counts'])
@@ -493,14 +505,22 @@ def get_split_names(wildcards):
     prefix, suffix = filename.split('{part}')
     return {'prefix': prefix, 'suffix': suffix}
 
+def check_split_ecdf(wildcards):
+    if os.path.exists(paths['split_chrom_dir']):
+        return []
+    else:
+        return {
+            'chrs': paths['chr_list'].format(model=model,
+                    directory=dirs['null']),
+            'windows': expand(paths['window_calc'],
+                        seed=null_seeds,
+                        directory=dirs['null']),
+            'temps': group_outputs['null_vcf'].get_temp_files()
+        }
+
 checkpoint split_ecdf:
     input:
-        ancient(paths['chr_list'].format(model=model,
-                                 directory=dirs['null'])),
-        ancient(expand(paths['window_calc'],
-               seed=null_seeds,
-               directory=dirs['null'])),
-        ancient(group_outputs['null_vcf'].get_temp_files())
+        unpack(check_split_ecdf)
 
     output:
         directory(paths['split_chrom_dir'])
@@ -527,7 +547,8 @@ def generate_ecdf_input(wildcards):
 
     return {'chrom_list': split_chrom,
             'windows': windows,
-            'temp_files': group_outputs['null_vcf'].get_temp_files()}
+            'temps': group_outputs['null_vcf'].get_temp_files()
+            }
 
 rule generate_ecdf:
     input:
@@ -558,16 +579,44 @@ def aggregate_ecdf_input(wildcards):
     result = expand(
             paths['split_null_db'],
             part=glob_wildcards(split_chrom).part)
-    return result
+    subbatch = math.ceil(math.sqrt(len(result)))
+    result = [result[i:i+subbatch]
+              for i in range(0, len(result), subbatch)]
+    ind = int(wildcards.ind)
+    return result[ind]
+
+rule join_ecdf_step1:
+    input:
+        aggregate_ecdf_input
+
+    output:
+        paths['joined_null_db']
+
+    shell:
+        'python ../src/Sstar_ECDF.py '
+            'combine-null-dbs '
+            '--outfile {output} '
+            '{input}'
 
 def get_split_to_delete(wildcards):
     path = paths['split_chrom']
     path = path.replace('{part}', '*')
     return path
 
+def aggregate_joined_ecdf_input(wildcards):
+    if os.path.exists(paths['ecdf_data']):
+        return ''
+    else:
+        split_dbs = len(null_seeds) // (batch // 10)
+        split_subbatch = math.ceil(math.sqrt(split_dbs))
+        length = split_dbs // split_subbatch
+        if length * split_subbatch < split_dbs:
+            length += 1
+        return expand(paths['joined_null_db'], ind=range(length))
+
 rule join_ecdf:
     input:
-        aggregate_ecdf_input
+        aggregate_joined_ecdf_input
 
     output:
         paths['ecdf_data']
