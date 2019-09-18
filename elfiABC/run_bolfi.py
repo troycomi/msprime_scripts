@@ -1,5 +1,6 @@
 import elfi
 from elfi.clients import multiprocessing
+from scipy.spatial.distance import euclidean
 import click
 import numpy as np
 import os
@@ -8,10 +9,20 @@ import subprocess
 
 
 base_output = '/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/{model}/bolfi'
-admixed_size = 200
+admixed_size = 500
 summary_output = ('/Genomics/akeylab/abwolf/SimulatedDemographic/ABC/'
-                  f'SplitPop/bolfi/{admixed_size}_summary.txt')
+                  f'SplitPop/bolfi/bolfi_summary.txt')
 model = 'SplitPop'
+empirical_order = (
+    'desert-5 desert-6 desert-7 desert-8 desert-9 desert-10 '
+    'pi-AF pi-EU pi-AS pi-AF-EU pi-AF-AS pi-EU-AS admix-ASN admix-EUR'
+).split()
+
+empirical = np.array([0.0375339, 0.274105, 0.0214289, # desert 5-7
+                      0.0176096, 0.0164607, 0.0136497,  # desert 8-10
+                      0.291761, 0.328705, 0.335145,  # pi
+                      0.12985, 0.156539, 0.0921547,  # fst
+                      0.016, 0.019])  # admix
 command = ('snakemake '
            '--configfile {config_file} '
            '--quiet ')
@@ -24,8 +35,12 @@ command = ('snakemake '
 @click.option('-n', '--number-processes', default=10,
               help='Number of simulations to run in this instance')
 def main(base, output, number_processes):
+    main_helper(base, output, number_processes)
+
+
+def main_helper(base, output, number_processes):
     global base_output
-    use = 'LOCAL'
+    use = 'BOLFI'
 
     # write null yaml to override base output
     with open('null.yml', 'w') as writer:
@@ -43,7 +58,8 @@ paths:
     # subprocess.check_call(["snakemake",
     #                  "--profile", "elfi_profile",
     #                  "--create-envs-only"])
-    click.secho('Starting BOLFI', fg='yellow')
+    # click.secho('Starting BOLFI', fg='yellow')
+
     if base:
         base_output = base
     if output:
@@ -58,7 +74,8 @@ paths:
     elfi.set_client(multiprocessing.Client(num_processes=number_processes))
     model = elfi.ElfiModel(name='msprime')
     elfi.Prior('uniform', 0, 0.5, model=model, name='n1')
-    elfi.Prior('uniform', 0, 0.5, model=model, name='n2')
+    # elfi.Prior('uniform', 0, 0.5, model=model, name='n2')
+    elfi.Constant(0, model=model, name='n2')
     elfi.Prior('uniform', 0, 1, model=model, name='split_prop')
     elfi.Prior('uniform', 1, 2758, model=model, name='split_size')
     snake_sim = elfi.tools.external_operation(command,
@@ -66,11 +83,6 @@ paths:
                                               process_result=process_result,
                                               stdout=False)
     vec_snake = elfi.tools.vectorize(snake_sim)
-    empirical = np.array([0.0375339, 0.274105, 0.0214289, # desert 5-7
-                          0.0176096, 0.0164607, 0.0136497,  # desert 8-10
-                          0.291761, 0.328705, 0.335145,  # pi
-                          0.12985, 0.156539, 0.0921547,  # fst
-                          0.016, 0.019])  # admix
     snake_node = elfi.Simulator(vec_snake, model['n1'],
                                 model['n2'],
                                 model['split_prop'],
@@ -91,7 +103,7 @@ paths:
                     (0.1, 0.0, 0.1, 1000),
                     (0.0, 0.0, 0.1, 1000),
                     (0.2, 0.0, 0.0, 1000),
-                    (0.1, 0.0, 0.0, 1000),
+                    # (0.1, 0.0, 0.0, 1000),
                     (0.0, 0.0, 0.0, 1000),
                     (0.2, 0.1, 0.1, 1000),
                     (0.1, 0.1, 0.1, 1000),
@@ -107,25 +119,32 @@ paths:
             pool = elfi.ArrayPool.open(name='bolfi_pool')
             click.secho('Opened existing pool', fg='green')
         except:
-            pool = elfi.ArrayPool(['n1', 'n2', 'split_prop',
+            pool = elfi.ArrayPool(['n1', 'split_prop',
                                    'split_size', 'snake_sim'],
                                   name='bolfi_pool')
             click.secho('Creating new pool', fg='yellow')
 
-        bolfi = elfi.BOLFI(distance, batch_size=1,
-                           initial_evidence=20, update_interval=3,
+        bolfi = elfi.BOLFI(distance,
+                           batch_size=1,
+                           #initial_evidence=500,
+                           initial_evidence=read_previous_results(summary_output),
+                           update_interval=10,
                            bounds={'n1': (0, 0.5),
-                                   'n2': (0, 0.5),
+                                   # 'n2': (0, 0.5),
                                    'split_prop': (0, 1),
                                    'split_size': (1, 2758)},
                            pool=pool)
-        post = bolfi.fit(n_evidence=20, bar=False)
-        click.secho('Saving results', fg='yellow')
-        pool.save()
-        pool.close()
-        click.secho('Done', fg='green')
+        elfi.set_client('native')
+        #post = bolfi.fit(n_evidence=525)
+        # click.secho('Saving results', fg='yellow')
+        # pool.save()
+        # pool.close()
 
-        return
+        post = bolfi.fit(n_evidence=100)
+        result = bolfi.sample(500, n_chains=4)
+        result.save('sample500.pkl')
+        print(result)
+        click.secho('Done', fg='green')
 
 
 def prepare_inputs(*inputs, **kwinputs):
@@ -136,6 +155,7 @@ def prepare_inputs(*inputs, **kwinputs):
         seed = kwinputs['seed']
     else:
         seed = 2
+        kwinputs['seed'] = seed
 
     if 'meta' in kwinputs:
         meta = kwinputs['meta']
@@ -145,7 +165,7 @@ def prepare_inputs(*inputs, **kwinputs):
         admix_base = admix_base.format(**meta)
 
     else:
-        admix_base = f'single_{admixed_size}_{n1}_{n2}_{split_prop}'
+        admix_base = f'single_{n1}_{n2}_{split_prop}'
 
     yml_file = f'{admix_base}.yaml'
 
@@ -204,6 +224,28 @@ def process_result(completed_process, *inputs, **kwinputs):
     os.remove(kwinputs['config_file'])
 
     return results
+
+
+def read_previous_results(fname):
+    result = {}
+    with open(fname, 'r') as infile:
+        headers = infile.readline().split()
+        for h in headers:
+            result[h] = []
+        for line in infile:
+            for h, v in zip(headers, line.split()):
+                result[h].append(float(v))
+
+    # create distance measure from empirical values
+    result['dist'] = []
+    for i in range(len(result[headers[0]])):
+        obs = np.array([result[eo][i] for eo in empirical_order])
+        result['dist'].append(euclidean(empirical, obs))
+
+    for k in result:
+        result[k] = np.array(result[k][:50])
+    # TODO return only first 50 results!
+    return result
 
 
 if __name__ == "__main__":

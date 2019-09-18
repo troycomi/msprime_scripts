@@ -9,7 +9,7 @@ __default__:
 vcf_to_sstar:
     "n": 10
     "memory": '20G'
-    "time": '0-4'
+    "time": '0-8'
     "jobname": 'vcf-to-sstar'
 
 generate_bed:
@@ -21,7 +21,7 @@ combine_introgressed_regions:
 null_match:
     "n": 10
     "time": '0-6'
-    "memory": "20G"
+    "memory": "10G"
     "jobname": 'null-match'
 
 build_db:
@@ -48,26 +48,25 @@ join_ecdf:
 match_pvalue:
     "jobname": 'match-pvalue'
     "n": 10
-    "time": '0-4'
-    "memory": "10G"
+    "time": '0-6'
+    "memory": "20G"
 
 ecdf_bed:
     "n": 10
     "time": '0-4'
-    "memory": '35G'
+    "memory": '40G'
     "jobname": 'ecdf-bed'
 
 desert:
     "jobname": 'desert'
     "n": 1
-    "memory": '10G'
-    "time": '0-23:00:00'
-    "qos": '1day'
+    "memory": '1G'
+    "time": '0-1'
+    "qos": '1hr'
 
 merge_split:
     "jobname": 'merge-split'
-    "time": '0-1'
-    "qos": '1hr'
+    "time": '0-6'
     "memory": '1G'
 
 calc_admix:

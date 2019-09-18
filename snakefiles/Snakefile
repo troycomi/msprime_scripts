@@ -108,11 +108,8 @@ group_inputs.append(
         group_name='ecdf_bed'))
 
 # get batched outputs, merge_split is fast and can take more samples
-# vcf_to_sstar needs to be split further
 group_outputs = get_batch_files(group_inputs, batch,
-                                merge_split=batch*10,
-                                admixed_vcf=batch//4,
-                                null_vcf=batch//4)
+                                merge_split=batch*5)
 
 def all_input(wildcards):
     result = ancient(expand(paths['options'],
@@ -341,7 +338,7 @@ rule merge_pi:
         'NR % 2 == 0 {{for(i = 1; i <=  NF; i++) sums[i] += $i; count++;}} '
         'END {{for(i = 1; i <= length(sums); i++) printf "%e\\t", sums[i]/count; printf "\\n";}}\' '
         '> {output} \n'
-        'find {paths[admixed_dir]} -regextype sed -regex \'{params.pi}\' -delete'
+        # TODO for chrom test 'find {paths[admixed_dir]} -regextype sed -regex \'{params.pi}\' -delete'
 
 rule generate_options:
     output:
@@ -414,12 +411,17 @@ rule match_pct:
             '--informative-site-method {config[match_pct][informative_site_method]} '
             '> {output}'
 
+def check_build_db(wildcards):
+    if os.path.exists(paths['null_db']):
+        return ''
+    else:
+        return {'counts': expand(paths['match_counts'],
+                          directory=dirs['null'],
+                          seed=null_seeds),
+                'temp': group_outputs['null_match'].get_temp_files()}
 rule build_db:
     input:
-        ancient(expand(paths['match_counts'],
-                directory=dirs['null'],
-                seed=null_seeds)),
-        ancient(group_outputs['null_match'].get_temp_files())
+        check_build_db
 
     output:
         paths['null_db']
@@ -590,7 +592,7 @@ rule join_ecdf_step1:
         aggregate_ecdf_input
 
     output:
-        paths['joined_null_db']
+        temp(paths['joined_null_db'])
 
     shell:
         'python ../src/Sstar_ECDF.py '
@@ -634,13 +636,24 @@ rule join_ecdf:
             '{input} \n'
         'rm {params.old_chrm}'
 
+def check_ecdf_bed(wildcards):
+    if os.path.exists(paths['ecdf_bed_merge'].format(
+            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+            seed=wildcards.seed)):
+        return []
+    else:
+        return {
+            'win': paths['window_calc'].format(directory=dirs['admixed'], seed=wildcards.seed),
+            'pval': paths['pvalue_table'].format(directory=dirs['admixed'], seed=wildcards.seed),
+            'ecdf': paths['ecdf_data'],
+            'temp_files': group_outputs['admixed_vcf'].get_temp_files(),
+            'temp_files2': group_outputs['match_pvalue'].get_temp_files(),
+        }
+
 rule ecdf_bed:
     input:
-        ancient(paths['window_calc'].replace('{directory}', dirs['admixed'])),
-        ancient(paths['pvalue_table'].replace('{directory}', dirs['admixed'])),
-        ecdf=ancient(paths['ecdf_data']),
-        temp_files=ancient(group_outputs['admixed_vcf'].get_temp_files()),
-        temp_files2=ancient(group_outputs['match_pvalue'].get_temp_files()),
+        unpack(check_ecdf_bed)
 
     output:
         temp(paths['ecdf_bed_files']\
@@ -671,12 +684,25 @@ rule ecdf_bed:
             '--chrom {wildcards.seed} '
             '--outfile {output}'
 
+def check_merge_bed(wildcards):
+    if os.path.exists(paths['ecdf_bed_merge'].format(
+            sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+            matchpvalue=config['s_star_ecdf']['matchpvalue'],
+            seed=wildcards.seed)):
+        return ''
+    else:
+        result = [
+            paths['ecdf_bed_files'].format(
+                sstarpvalue=config['s_star_ecdf']['sstarpvalue'],
+                matchpvalue=config['s_star_ecdf']['matchpvalue'],
+                seed=wildcards.seed)
+                ] + group_outputs['ecdf_bed'].get_temp_files()
+        return result
+
+
 rule merge_bed:
     input:
-        ancient(paths['ecdf_bed_files']\
-            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])),
-        ancient(group_outputs['ecdf_bed'].get_temp_files())
+        check_merge_bed
 
     output:
         temp(paths['ecdf_bed_merge']\
@@ -701,13 +727,13 @@ rule split_pops:
 
     output:
         temp(paths['ecdf_bed_merge_pop']\
-           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
-           .replace('{population}', 'ASN')),
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+            .replace('{population}', 'ASN')),
         temp(paths['ecdf_bed_merge_pop']\
-           .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
-           .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
-           .replace('{population}', 'EUR')),
+            .replace('{sstarpvalue}', config['s_star_ecdf']['sstarpvalue'])\
+            .replace('{matchpvalue}', config['s_star_ecdf']['matchpvalue'])\
+            .replace('{population}', 'EUR')),
 
     group: "merge_split"
 
@@ -760,7 +786,7 @@ rule calc_admix:
         temp_files=ancient(group_outputs['merge_split'].get_temp_files())
 
     output:
-        paths['sstar_out']
+        temp(paths['sstar_out'])
 
     params:
         asn=paths['ecdf_bed_merge_pop'].format(
@@ -825,7 +851,7 @@ rule significant_windows:
         pop=ancient(rules.generate_popfile.output)
 
     output:
-        paths['below_thresh']
+        temp(paths['below_thresh'])
 
     conda:
         'sstar_ecdf.yml'
@@ -844,9 +870,9 @@ rule significant_windows:
 
 rule summary_statistics:
     input:
-        pi=ancient(paths['pi_joined']),
-        simulated=ancient(paths['below_thresh']),
-        admixed=ancient(paths['sstar_out']),
+        pi=paths['pi_joined'],
+        simulated=paths['below_thresh'],
+        admixed=paths['sstar_out'],
 
     output:
         paths['summary']

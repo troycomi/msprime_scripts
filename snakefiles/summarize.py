@@ -16,6 +16,7 @@ def main(simulated, pi, admixed, output):
         simulated = pd.read_csv(simulated, sep='\t',
                                 usecols=[1, 3],
                                 names=['winsize', 'sim_prop'])
+        simulated = simulated[simulated['winsize'] >= 5]
         for row in simulated.itertuples(index=False):
             outputs[f'desert-{row.winsize}'] = row.sim_prop
 
